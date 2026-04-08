@@ -3,9 +3,7 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
-import { Badge } from '@/components/ui/badge';
 import {
   Dialog,
   DialogContent,
@@ -13,7 +11,6 @@ import {
   DialogTitle,
   DialogTrigger,
 } from '@/components/ui/dialog';
-import { Separator } from '@/components/ui/separator';
 import { api, Repository } from '@/lib/api-client';
 
 export default function Home() {
@@ -52,173 +49,175 @@ export default function Home() {
 
   return (
     <div className="min-h-screen">
-      {/* Header */}
-      <header className="sticky top-0 z-50 border-b border-border/50 bg-background/80 backdrop-blur-md">
-        <div className="mx-auto flex max-w-6xl items-center justify-between px-6 py-3">
-          <div className="flex items-center gap-3">
-            <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-primary shadow-sm">
-              <span className="text-sm font-bold text-primary-foreground">G</span>
-            </div>
-            <div>
-              <h1 className="text-lg font-semibold leading-none">GrokForge</h1>
-              <p className="text-xs text-muted-foreground">by xAI</p>
-            </div>
+      {/* Nav */}
+      <nav className="fixed top-0 z-50 w-full border-b border-border bg-background/90 backdrop-blur-sm">
+        <div className="mx-auto flex max-w-7xl items-center justify-between px-6 py-4">
+          <div className="flex items-center gap-4">
+            <span className="font-mono text-sm font-medium uppercase tracking-[0.2em]">
+              GrokForge
+            </span>
+            <span className="hidden text-[10px] uppercase tracking-widest text-muted-foreground sm:inline">
+              by xAI
+            </span>
           </div>
+          <button
+            onClick={() => router.push('/dashboard')}
+            className="font-mono text-xs uppercase tracking-wider text-muted-foreground transition-colors hover:text-foreground"
+          >
+            Dashboard
+          </button>
           <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-            <DialogTrigger render={<Button size="sm" />}>Add Repository</DialogTrigger>
+            <DialogTrigger render={<Button size="sm" />}>
+              <span className="font-mono text-xs uppercase tracking-wider">Connect Repo</span>
+            </DialogTrigger>
             <DialogContent>
               <DialogHeader>
-                <DialogTitle>Connect a Repository</DialogTitle>
+                <DialogTitle className="font-mono text-sm uppercase tracking-wider">
+                  Connect Repository
+                </DialogTitle>
               </DialogHeader>
-              <div className="space-y-4 pt-2">
-                <div>
-                  <label className="mb-1.5 block text-sm font-medium">Local Path</label>
-                  <Input
-                    placeholder="/Users/you/projects/your-repo"
-                    value={repoPath}
-                    onChange={(e) => setRepoPath(e.target.value)}
-                    onKeyDown={(e) => e.key === 'Enter' && handleAddRepo()}
-                    className="font-mono text-sm"
-                  />
-                  {error && <p className="mt-2 text-sm text-destructive">{error}</p>}
-                </div>
+              <div className="space-y-4 pt-4">
+                <Input
+                  placeholder="/path/to/repository"
+                  value={repoPath}
+                  onChange={(e) => setRepoPath(e.target.value)}
+                  onKeyDown={(e) => e.key === 'Enter' && handleAddRepo()}
+                  className="font-mono text-sm"
+                />
+                {error && <p className="text-sm text-destructive">{error}</p>}
                 <Button onClick={handleAddRepo} disabled={adding} className="w-full">
-                  {adding ? (
-                    <span className="flex items-center gap-2">
-                      <span className="h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent" />
-                      Scanning repository...
-                    </span>
-                  ) : (
-                    'Scan & Connect'
-                  )}
+                  <span className="font-mono text-xs uppercase tracking-wider">
+                    {adding ? 'Scanning...' : 'Scan & Connect'}
+                  </span>
                 </Button>
               </div>
             </DialogContent>
           </Dialog>
         </div>
-      </header>
+      </nav>
 
-      {/* Hero (shown when no repos) */}
+      {/* Hero */}
       {!loading && repos.length === 0 && (
-        <div className="relative overflow-hidden">
-          <div className="absolute inset-0 bg-gradient-to-br from-primary/5 via-transparent to-accent/5" />
-          <div className="relative mx-auto max-w-6xl px-6 py-20 text-center">
-            <Badge variant="secondary" className="mb-4">
-              Powered by Grok
-            </Badge>
-            <h2 className="mx-auto max-w-2xl text-4xl font-bold tracking-tight">
-              Your repo-aware
-              <br />
-              <span className="text-primary">coding workspace</span>
-            </h2>
-            <p className="mx-auto mt-4 max-w-lg text-lg text-muted-foreground">
-              Plan tasks, generate patches, run validation, and review diffs — all in one loop.
-              Connect a repo to start engineering.
+        <div className="flex min-h-screen flex-col items-center justify-center px-6 pt-16">
+          <div className="max-w-3xl text-center">
+            <p className="mb-6 font-mono text-xs uppercase tracking-[0.3em] text-muted-foreground">
+              Repo-Aware Coding Workspace
             </p>
-            <div className="mt-8 flex justify-center gap-3">
-              <Button size="lg" onClick={() => setDialogOpen(true)}>
-                Connect Repository
+            <h1 className="font-mono text-5xl font-light leading-[1.1] tracking-tight sm:text-7xl">
+              Engineer
+              <br />
+              with Grok
+            </h1>
+            <p className="mx-auto mt-8 max-w-lg text-base leading-relaxed text-muted-foreground">
+              Plan tasks. Generate patches. Run validation. Review diffs. All in one loop, powered
+              by Grok&apos;s structured outputs.
+            </p>
+            <div className="mt-12 flex justify-center gap-4">
+              <Button size="lg" onClick={() => setDialogOpen(true)} className="px-8">
+                <span className="font-mono text-xs uppercase tracking-wider">Get Started</span>
+              </Button>
+              <Button
+                variant="outline"
+                size="lg"
+                className="px-8"
+                onClick={() => window.open('https://github.com/omairqazi29/grokforge', '_blank')}
+              >
+                <span className="font-mono text-xs uppercase tracking-wider">View Source</span>
               </Button>
             </div>
+          </div>
 
-            {/* Feature pills */}
-            <div className="mt-16 grid grid-cols-1 gap-4 sm:grid-cols-3">
+          {/* Three Layers */}
+          <div className="mt-24 w-full max-w-5xl">
+            <div className="grid grid-cols-1 gap-px border border-border bg-border md:grid-cols-3">
               {[
                 {
                   title: 'Workspace',
-                  desc: 'Plan, patch, validate, review',
-                  icon: '\u2692',
+                  desc: 'Interactive plan-patch-validate-review loop with structured AI output',
                 },
                 {
                   title: 'Lens',
-                  desc: 'Repo graph, symbols, architecture',
-                  icon: '\uD83D\uDD0D',
+                  desc: 'Symbol indexing, dependency tracking, and architecture summarization',
                 },
                 {
                   title: 'Ops',
-                  desc: 'Autonomous PRs from issues',
-                  icon: '\u26A1',
+                  desc: 'Autonomous PR generation from issues with evidence bundles',
                 },
               ].map((f) => (
-                <Card key={f.title} className="text-left">
-                  <CardHeader className="pb-2">
-                    <CardTitle className="flex items-center gap-2 text-base">
-                      <span>{f.icon}</span>
-                      {f.title}
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <p className="text-sm text-muted-foreground">{f.desc}</p>
-                  </CardContent>
-                </Card>
+                <div key={f.title} className="bg-background p-8">
+                  <h3 className="mb-3 font-mono text-xs uppercase tracking-[0.2em] text-muted-foreground">
+                    {f.title}
+                  </h3>
+                  <p className="text-sm leading-relaxed">{f.desc}</p>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* Capabilities */}
+          <div className="mt-16 w-full max-w-5xl pb-24">
+            <p className="mb-8 font-mono text-xs uppercase tracking-[0.3em] text-muted-foreground">
+              Capabilities
+            </p>
+            <div className="grid grid-cols-2 gap-px border border-border bg-border sm:grid-cols-3 lg:grid-cols-4">
+              {[
+                'Plan Generation',
+                'Multi-file Patches',
+                'Validation Runner',
+                'Diff Review',
+                'Session Memory',
+                'Auto-fix Loop',
+                'Token Dashboard',
+                'GitHub PRs',
+                'Repo Graph',
+                'Dark Mode',
+                'Cloud Ready',
+                'Mobile Dispatch',
+              ].map((f) => (
+                <div key={f} className="bg-background px-4 py-6">
+                  <p className="font-mono text-xs uppercase tracking-wider">{f}</p>
+                </div>
               ))}
             </div>
           </div>
         </div>
       )}
 
-      {/* Repos grid */}
+      {/* Repos list */}
       {!loading && repos.length > 0 && (
-        <main className="mx-auto max-w-6xl px-6 py-8">
-          <div className="mb-6 flex items-center justify-between">
+        <main className="mx-auto max-w-7xl px-6 pt-24 pb-16">
+          <div className="mb-8 flex items-end justify-between border-b border-border pb-4">
             <div>
-              <h2 className="text-lg font-semibold">Repositories</h2>
-              <p className="text-sm text-muted-foreground">
-                {repos.length} connected {repos.length === 1 ? 'repo' : 'repos'}
+              <p className="font-mono text-xs uppercase tracking-[0.3em] text-muted-foreground">
+                Repositories
               </p>
+              <p className="mt-1 text-sm text-muted-foreground">{repos.length} connected</p>
             </div>
           </div>
-          <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
+          <div className="grid grid-cols-1 gap-px border border-border bg-border md:grid-cols-2 lg:grid-cols-3">
             {repos.map((repo) => (
-              <Card
+              <button
                 key={repo.id}
-                className="group cursor-pointer transition-all hover:border-primary/40 hover:shadow-md"
                 onClick={() => router.push(`/repos/${repo.id}`)}
+                className="bg-background p-6 text-left transition-colors hover:bg-accent"
               >
-                <CardHeader className="pb-2">
-                  <div className="flex items-start justify-between">
-                    <CardTitle className="text-base group-hover:text-primary transition-colors">
-                      {repo.name}
-                    </CardTitle>
-                    <Badge variant="outline" className="text-xs">
-                      {Object.keys(repo.symbol_index).length} modules
-                    </Badge>
-                  </div>
-                  <CardDescription className="truncate font-mono text-xs">
-                    {repo.path}
-                  </CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <Separator className="mb-3" />
-                  <div className="flex items-center gap-3 text-xs text-muted-foreground">
-                    <span>{repo.file_tree.length} files</span>
-                    <span>&#183;</span>
-                    <span>{Object.values(repo.symbol_index).flat().length} symbols</span>
-                  </div>
-                </CardContent>
-              </Card>
+                <p className="font-mono text-sm font-medium">{repo.name}</p>
+                <p className="mt-1 truncate font-mono text-xs text-muted-foreground">{repo.path}</p>
+                <div className="mt-4 flex items-center gap-4 text-xs text-muted-foreground">
+                  <span>{repo.file_tree.length} files</span>
+                  <span>{Object.values(repo.symbol_index).flat().length} symbols</span>
+                </div>
+              </button>
             ))}
           </div>
         </main>
       )}
 
-      {/* Loading state */}
+      {/* Loading */}
       {loading && (
-        <main className="mx-auto max-w-6xl px-6 py-8">
-          <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
-            {[1, 2, 3].map((i) => (
-              <Card key={i} className="animate-pulse">
-                <CardHeader>
-                  <div className="h-5 w-1/2 rounded bg-muted" />
-                  <div className="mt-2 h-4 w-3/4 rounded bg-muted" />
-                </CardHeader>
-                <CardContent>
-                  <div className="h-3 w-1/3 rounded bg-muted" />
-                </CardContent>
-              </Card>
-            ))}
-          </div>
-        </main>
+        <div className="flex min-h-screen items-center justify-center pt-16">
+          <div className="h-4 w-4 animate-spin border border-foreground border-t-transparent" />
+        </div>
       )}
     </div>
   );

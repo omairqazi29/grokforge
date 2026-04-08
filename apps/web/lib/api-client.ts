@@ -86,6 +86,35 @@ export interface ValidationRun {
   created_at: string;
 }
 
+// Token usage types
+export interface TokenUsage {
+  id: number;
+  session_id: number | null;
+  operation: string;
+  model: string;
+  prompt_tokens: number;
+  completion_tokens: number;
+  total_tokens: number;
+  cost_usd: number;
+  created_at: string;
+}
+
+export interface TokenSummary {
+  total_prompt_tokens: number;
+  total_completion_tokens: number;
+  total_tokens: number;
+  total_cost_usd: number;
+  request_count: number;
+}
+
+// PR export types
+export interface PRExportResult {
+  branch: string;
+  files_changed: number;
+  message: string;
+  pr_url: string | null;
+}
+
 // API methods
 export const api = {
   repos: {
@@ -130,6 +159,23 @@ export const api = {
       request<ValidationRun>(`/api/sessions/${sessionId}/validate`, {
         method: 'POST',
         body: JSON.stringify(data),
+      }),
+  },
+  tokens: {
+    list: (sessionId?: number) => {
+      const params = sessionId ? `?session_id=${sessionId}` : '';
+      return request<TokenUsage[]>(`/api/tokens${params}`);
+    },
+    summary: (sessionId?: number) => {
+      const params = sessionId ? `?session_id=${sessionId}` : '';
+      return request<TokenSummary>(`/api/tokens/summary${params}`);
+    },
+  },
+  github: {
+    exportPR: (sessionId: number, branchName?: string) =>
+      request<PRExportResult>(`/api/sessions/${sessionId}/export-pr`, {
+        method: 'POST',
+        body: JSON.stringify({ branch_name: branchName }),
       }),
   },
 };
