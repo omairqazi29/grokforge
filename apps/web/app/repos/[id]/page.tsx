@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { useParams, useRouter } from 'next/navigation';
+import { useParams, useRouter, useSearchParams } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import {
@@ -17,6 +17,7 @@ import { api, Repository, Session } from '@/lib/api-client';
 export default function RepoPage() {
   const params = useParams();
   const router = useRouter();
+  const searchParams = useSearchParams();
   const repoId = Number(params.id);
 
   const [repo, setRepo] = useState<Repository | null>(null);
@@ -25,6 +26,16 @@ export default function RepoPage() {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [taskDesc, setTaskDesc] = useState('');
   const [creating, setCreating] = useState(false);
+
+  // Auto-create session from validation error highlight
+  useEffect(() => {
+    const autoCreate = searchParams.get('autoCreate');
+    const task = searchParams.get('task');
+    if (autoCreate === 'true' && task) {
+      setTaskDesc(decodeURIComponent(task));
+      setDialogOpen(true);
+    }
+  }, [searchParams]);
 
   useEffect(() => {
     Promise.all([api.repos.get(repoId), api.sessions.list(repoId)])

@@ -407,6 +407,7 @@ export default function SessionPage() {
                   runs={validationRuns}
                   onRunValidation={handleRunValidation}
                   loading={validationLoading}
+                  repoId={repo?.id}
                 />
                 {/* P1: Auto-fix loop */}
                 {hasFailedValidation && patch?.status === 'pending' && (
