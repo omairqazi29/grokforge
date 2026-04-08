@@ -43,8 +43,10 @@ class GrokProvider(AIProvider):
     async def _call(
         self,
         messages: list,
+        operation: str = "unknown",
         response_schema: dict = None,
         max_tokens: int = 4096,
+        session_id: int = None,
     ) -> dict:
         body = {
             "model": self.model,
@@ -71,14 +73,55 @@ class GrokProvider(AIProvider):
             data = resp.json()
             content = data["choices"][0]["message"]["content"]
             usage = data.get("usage", {})
+            prompt_tokens = usage.get("prompt_tokens", 0)
+            completion_tokens = usage.get("completion_tokens", 0)
+            total_tokens = usage.get("total_tokens", prompt_tokens + completion_tokens)
+
             logger.info(
-                "Grok API call: %d prompt + %d completion tokens",
-                usage.get("prompt_tokens", 0),
-                usage.get("completion_tokens", 0),
+                "Grok API [%s]: %d prompt + %d completion tokens",
+                operation, prompt_tokens, completion_tokens,
             )
+
+            # Track token usage in DB
+            await self._record_usage(
+                operation=operation,
+                prompt_tokens=prompt_tokens,
+                completion_tokens=completion_tokens,
+                total_tokens=total_tokens,
+                session_id=session_id,
+            )
+
             if response_schema:
                 return json.loads(content)
             return {"text": content}
+
+    async def _record_usage(
+        self,
+        operation: str,
+        prompt_tokens: int,
+        completion_tokens: int,
+        total_tokens: int,
+        session_id: int = None,
+    ):
+        # Pricing for grok-4-1-fast: $0.20/1M input, $0.50/1M output
+        cost = (prompt_tokens * 0.20 + completion_tokens * 0.50) / 1_000_000
+        try:
+            from app.database import async_session
+            from app.models.token_usage import TokenUsage
+            async with async_session() as db:
+                record = TokenUsage(
+                    session_id=session_id,
+                    operation=operation,
+                    model=self.model,
+                    prompt_tokens=prompt_tokens,
+                    completion_tokens=completion_tokens,
+                    total_tokens=total_tokens,
+                    cost_usd=cost,
+                )
+                db.add(record)
+                await db.commit()
+        except Exception as e:
+            logger.warning("Failed to record token usage: %s", e)
 
     async def summarize_repo(
         self, file_tree: List[str], sample_files: Dict[str, str]
@@ -89,6 +132,7 @@ class GrokProvider(AIProvider):
             samples += f"\n--- {path} ---\n{content[:500]}\n"
 
         result = await self._call(
+            operation="summarize_repo",
             messages=[
                 {
                     "role": "system",
@@ -130,6 +174,7 @@ class GrokProvider(AIProvider):
         constraint_text = "\n".join(f"- {c}" for c in constraints) if constraints else "None"
 
         result = await self._call(
+            operation="generate_plan",
             messages=[
                 {
                     "role": "system",
@@ -203,6 +248,7 @@ class GrokProvider(AIProvider):
             files_text += f"\n--- {path} ---\n{content}\n"
 
         result = await self._call(
+            operation="propose_patch",
             messages=[
                 {
                     "role": "system",
@@ -268,6 +314,7 @@ class GrokProvider(AIProvider):
 
     async def analyze_validation(self, result: ValidationResult) -> ValidationAnalysis:
         analysis = await self._call(
+            operation="analyze_validation",
             messages=[
                 {
                     "role": "system",
@@ -308,6 +355,7 @@ class GrokProvider(AIProvider):
 
     async def explain_diff(self, diff: str, file_path: str) -> str:
         result = await self._call(
+            operation="explain_diff",
             messages=[
                 {
                     "role": "system",
