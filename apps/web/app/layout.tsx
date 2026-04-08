@@ -14,7 +14,7 @@ const geistMono = Geist_Mono({
 
 export const metadata: Metadata = {
   title: 'GrokForge',
-  description: 'Repo-aware coding workspace powered by AI',
+  description: 'Repo-aware coding workspace powered by Grok',
 };
 
 export default function RootLayout({
@@ -23,8 +23,13 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}>
-      <body className="min-h-full bg-background text-foreground">{children}</body>
+    <html
+      lang="en"
+      className={`${geistSans.variable} ${geistMono.variable} dark h-full antialiased`}
+    >
+      <body className="min-h-full bg-background text-foreground selection:bg-white/20">
+        {children}
+      </body>
     </html>
   );
 }

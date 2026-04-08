@@ -3,10 +3,8 @@
 import { useEffect, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
-import { Badge } from '@/components/ui/badge';
-import { Separator } from '@/components/ui/separator';
+import { Textarea } from '@/components/ui/textarea';
 import {
   Dialog,
   DialogContent,
@@ -14,7 +12,6 @@ import {
   DialogTitle,
   DialogTrigger,
 } from '@/components/ui/dialog';
-import { Textarea } from '@/components/ui/textarea';
 import { FileTree } from '@/components/file-tree';
 import { api, Repository, Session } from '@/lib/api-client';
 
@@ -62,7 +59,7 @@ export default function RepoPage() {
   if (loading) {
     return (
       <div className="flex min-h-screen items-center justify-center">
-        <p className="text-muted-foreground">Loading repository...</p>
+        <div className="h-4 w-4 animate-spin border border-foreground border-t-transparent" />
       </div>
     );
   }
@@ -70,52 +67,76 @@ export default function RepoPage() {
   if (!repo) {
     return (
       <div className="flex min-h-screen items-center justify-center">
-        <p className="text-muted-foreground">Repository not found</p>
+        <p className="font-mono text-xs uppercase tracking-wider text-muted-foreground">
+          Repository not found
+        </p>
       </div>
     );
   }
 
+  const STATUS_MAP: Record<string, string> = {
+    created: 'NEW',
+    planning: 'PLAN',
+    planned: 'PLANNED',
+    patching: 'PATCH',
+    reviewing: 'REVIEW',
+    validating: 'TEST',
+    completed: 'DONE',
+  };
+
   return (
     <div className="min-h-screen">
       {/* Header */}
-      <header className="sticky top-0 z-50 border-b border-border/50 bg-background/80 backdrop-blur-md">
-        <div className="mx-auto flex max-w-6xl items-center justify-between px-6 py-3">
-          <div className="flex items-center gap-3">
+      <header className="fixed top-0 z-50 w-full border-b border-border bg-background/90 backdrop-blur-sm">
+        <div className="mx-auto flex max-w-7xl items-center justify-between px-6 py-4">
+          <div className="flex items-center gap-4">
             <button
               onClick={() => router.push('/')}
-              className="text-sm text-muted-foreground transition-colors hover:text-foreground"
+              className="font-mono text-xs uppercase tracking-wider text-muted-foreground transition-colors hover:text-foreground"
             >
-              &larr; Back
+              &larr; Repos
             </button>
-            <Separator orientation="vertical" className="h-6" />
-            <h1 className="text-xl font-semibold">{repo.name}</h1>
+            <span className="text-border">|</span>
+            <span className="font-mono text-sm font-medium">{repo.name}</span>
           </div>
           <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-            <DialogTrigger render={<Button />}>New Session</DialogTrigger>
+            <DialogTrigger render={<Button size="sm" />}>
+              <span className="font-mono text-xs uppercase tracking-wider">New Session</span>
+            </DialogTrigger>
             <DialogContent>
               <DialogHeader>
-                <DialogTitle>Create a Session</DialogTitle>
+                <DialogTitle className="font-mono text-sm uppercase tracking-wider">
+                  New Session
+                </DialogTitle>
               </DialogHeader>
-              <div className="space-y-4 pt-2">
+              <div className="space-y-4 pt-4">
                 <div>
-                  <label className="mb-1.5 block text-sm font-medium">Title</label>
+                  <label className="mb-1.5 block font-mono text-xs uppercase tracking-wider text-muted-foreground">
+                    Title
+                  </label>
                   <Input
                     placeholder="Add retry logic to API client"
                     value={title}
                     onChange={(e) => setTitle(e.target.value)}
+                    className="font-mono text-sm"
                   />
                 </div>
                 <div>
-                  <label className="mb-1.5 block text-sm font-medium">Task Description</label>
+                  <label className="mb-1.5 block font-mono text-xs uppercase tracking-wider text-muted-foreground">
+                    Task
+                  </label>
                   <Textarea
                     placeholder="Describe what you want to change..."
                     value={taskDesc}
                     onChange={(e) => setTaskDesc(e.target.value)}
                     rows={4}
+                    className="font-mono text-sm"
                   />
                 </div>
                 <Button onClick={handleCreateSession} disabled={creating} className="w-full">
-                  {creating ? 'Creating...' : 'Create Session'}
+                  <span className="font-mono text-xs uppercase tracking-wider">
+                    {creating ? 'Creating...' : 'Create'}
+                  </span>
                 </Button>
               </div>
             </DialogContent>
@@ -124,74 +145,108 @@ export default function RepoPage() {
       </header>
 
       {/* Content */}
-      <div className="mx-auto max-w-6xl px-6 py-8">
+      <div className="mx-auto max-w-7xl px-6 pt-24 pb-16">
         <div className="grid grid-cols-1 gap-8 lg:grid-cols-3">
-          {/* Left: Summary + Sessions */}
-          <div className="space-y-6 lg:col-span-2">
-            <Card>
-              <CardHeader>
-                <CardTitle>Repository Summary</CardTitle>
-                <CardDescription className="truncate">{repo.path}</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <p className="text-sm">{repo.summary}</p>
-                <div className="mt-3 flex flex-wrap gap-2">
-                  <Badge variant="secondary">{repo.file_tree.length} files</Badge>
-                  <Badge variant="outline">
-                    {Object.keys(repo.symbol_index).length} indexed files
-                  </Badge>
-                  <Badge variant="outline">
-                    {Object.values(repo.symbol_index).flat().length} symbols
-                  </Badge>
-                </div>
-              </CardContent>
-            </Card>
+          {/* Left: Repo info + Sessions */}
+          <div className="lg:col-span-2 space-y-8">
+            {/* Repo Summary */}
+            <div className="border border-border p-6">
+              <p className="mb-4 font-mono text-xs uppercase tracking-[0.2em] text-muted-foreground">
+                Repository
+              </p>
+              <p className="mb-2 font-mono text-xs text-muted-foreground">{repo.path}</p>
+              <p className="text-sm leading-relaxed">{repo.summary}</p>
+              <div className="mt-4 flex gap-6 text-xs text-muted-foreground">
+                <span>{repo.file_tree.length} files</span>
+                <span>{Object.keys(repo.symbol_index).length} indexed</span>
+                <span>{Object.values(repo.symbol_index).flat().length} symbols</span>
+              </div>
+            </div>
 
+            {/* P1: Session History */}
             <div>
-              <h2 className="mb-4 text-lg font-semibold">Sessions</h2>
+              <div className="mb-4 flex items-center justify-between">
+                <p className="font-mono text-xs uppercase tracking-[0.2em] text-muted-foreground">
+                  Sessions
+                </p>
+                <span className="font-mono text-xs text-muted-foreground">
+                  {sessions.length} total
+                </span>
+              </div>
+
               {sessions.length === 0 ? (
-                <Card>
-                  <CardContent className="py-8 text-center">
-                    <p className="mb-4 text-muted-foreground">No sessions yet</p>
-                    <Button onClick={() => setDialogOpen(true)}>Create First Session</Button>
-                  </CardContent>
-                </Card>
+                <div className="border border-border p-8 text-center">
+                  <p className="mb-4 text-sm text-muted-foreground">No sessions yet</p>
+                  <Button onClick={() => setDialogOpen(true)}>
+                    <span className="font-mono text-xs uppercase tracking-wider">
+                      Create First Session
+                    </span>
+                  </Button>
+                </div>
               ) : (
-                <div className="space-y-3">
-                  {sessions.map((session) => (
-                    <Card
-                      key={session.id}
-                      className="cursor-pointer transition-colors hover:border-primary/50"
-                      onClick={() => router.push(`/sessions/${session.id}`)}
+                <div className="divide-y divide-border border border-border">
+                  {sessions.map((s) => (
+                    <button
+                      key={s.id}
+                      onClick={() => router.push(`/sessions/${s.id}`)}
+                      className="flex w-full items-center justify-between p-4 text-left transition-colors hover:bg-accent"
                     >
-                      <CardHeader className="pb-2">
-                        <div className="flex items-center justify-between">
-                          <CardTitle className="text-base">{session.title}</CardTitle>
-                          <Badge variant="outline">{session.status}</Badge>
-                        </div>
-                      </CardHeader>
-                      <CardContent>
-                        <p className="truncate text-sm text-muted-foreground">
-                          {session.task_description}
+                      <div className="min-w-0 flex-1">
+                        <p className="truncate font-mono text-sm">{s.title}</p>
+                        <p className="mt-1 truncate text-xs text-muted-foreground">
+                          {s.task_description}
                         </p>
-                      </CardContent>
-                    </Card>
+                      </div>
+                      <div className="ml-4 flex items-center gap-3">
+                        <span className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground">
+                          {STATUS_MAP[s.status] || s.status}
+                        </span>
+                      </div>
+                    </button>
                   ))}
                 </div>
               )}
             </div>
           </div>
 
-          {/* Right: File Tree */}
-          <div>
-            <Card className="h-[600px]">
-              <CardHeader className="pb-2">
-                <CardTitle className="text-base">File Tree</CardTitle>
-              </CardHeader>
-              <CardContent className="h-[calc(100%-60px)] p-0 px-2">
+          {/* Right: File Tree + Repo Graph */}
+          <div className="space-y-6">
+            <div className="border border-border">
+              <div className="border-b border-border p-4">
+                <p className="font-mono text-xs uppercase tracking-[0.2em] text-muted-foreground">
+                  File Tree
+                </p>
+              </div>
+              <div className="h-[500px] p-2">
                 <FileTree files={repo.file_tree} symbolIndex={repo.symbol_index} />
-              </CardContent>
-            </Card>
+              </div>
+            </div>
+
+            {/* P2: Repo Memory / Dependency Graph Preview */}
+            <div className="border border-border p-6">
+              <p className="mb-3 font-mono text-xs uppercase tracking-[0.2em] text-muted-foreground">
+                Dependency Graph
+              </p>
+              <div className="space-y-2">
+                {Object.entries(repo.symbol_index)
+                  .slice(0, 8)
+                  .map(([file, symbols]) => (
+                    <div key={file} className="flex items-start justify-between gap-2">
+                      <span className="truncate font-mono text-xs text-muted-foreground">
+                        {file}
+                      </span>
+                      <span className="shrink-0 font-mono text-[10px] text-muted-foreground">
+                        {symbols.length}
+                      </span>
+                    </div>
+                  ))}
+                {Object.keys(repo.symbol_index).length > 8 && (
+                  <p className="font-mono text-[10px] text-muted-foreground">
+                    +{Object.keys(repo.symbol_index).length - 8} more files
+                  </p>
+                )}
+              </div>
+            </div>
           </div>
         </div>
       </div>

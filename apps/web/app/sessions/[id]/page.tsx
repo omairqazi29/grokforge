@@ -3,15 +3,21 @@
 import { useEffect, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Separator } from '@/components/ui/separator';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { TaskComposer } from '@/components/task-composer';
 import { PlanViewer } from '@/components/plan-viewer';
 import { DiffViewer } from '@/components/diff-viewer';
 import { ValidationPanel } from '@/components/validation-panel';
-import { api, Session, Plan, PatchArtifact, ValidationRun, Repository } from '@/lib/api-client';
+import {
+  api,
+  Session,
+  Plan,
+  PatchArtifact,
+  ValidationRun,
+  Repository,
+  PRExportResult,
+} from '@/lib/api-client';
 
 export default function SessionPage() {
   const params = useParams();
@@ -28,6 +34,9 @@ export default function SessionPage() {
   const [patchLoading, setPatchLoading] = useState(false);
   const [validationLoading, setValidationLoading] = useState(false);
   const [activeTab, setActiveTab] = useState('compose');
+  const [autoFixing, setAutoFixing] = useState(false);
+  const [exporting, setExporting] = useState(false);
+  const [prResult, setPrResult] = useState<PRExportResult | null>(null);
 
   useEffect(() => {
     api.sessions
@@ -43,14 +52,9 @@ export default function SessionPage() {
 
   const handleGeneratePlan = async (task: string, constraints: string[]) => {
     if (!session) return;
-
-    // Update session with task if needed
     await api.sessions.update(session.id, { title: task.slice(0, 60) });
-
-    // Create a new session with the task if current one doesn't have it
     const updatedSession = await api.sessions.get(session.id);
     setSession(updatedSession);
-
     setPlanLoading(true);
     try {
       const generatedPlan = await api.plans.generate(session.id);
@@ -95,6 +99,21 @@ export default function SessionPage() {
     }
   };
 
+  // P1: Auto-fix loop — regenerate patch after validation failure
+  const handleAutoFix = async () => {
+    if (!session || !patch) return;
+    setAutoFixing(true);
+    try {
+      const newPatch = await api.patches.generate(session.id);
+      setPatch(newPatch);
+      setActiveTab('review');
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setAutoFixing(false);
+    }
+  };
+
   const handlePatchAction = async (status: 'accepted' | 'rejected') => {
     if (!session || !patch) return;
     try {
@@ -108,23 +127,26 @@ export default function SessionPage() {
     }
   };
 
-  const STATUS_STYLES: Record<string, string> = {
-    created: 'bg-muted text-muted-foreground',
-    planning: 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400',
-    planned: 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400',
-    patching: 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400',
-    reviewing: 'bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-400',
-    validating: 'bg-orange-100 text-orange-800 dark:bg-orange-900/30 dark:text-orange-400',
-    completed: 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400',
+  // P2: GitHub PR export
+  const handleExportPR = async () => {
+    if (!session) return;
+    setExporting(true);
+    try {
+      const result = await api.github.exportPR(session.id);
+      setPrResult(result);
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setExporting(false);
+    }
   };
+
+  const hasFailedValidation = validationRuns.some((r) => r.exit_code !== 0);
 
   if (loading) {
     return (
       <div className="flex min-h-screen items-center justify-center">
-        <div className="flex flex-col items-center gap-3">
-          <div className="h-8 w-8 animate-spin rounded-full border-2 border-primary border-t-transparent" />
-          <p className="text-sm text-muted-foreground">Loading session...</p>
-        </div>
+        <div className="h-4 w-4 animate-spin border border-foreground border-t-transparent" />
       </div>
     );
   }
@@ -132,7 +154,9 @@ export default function SessionPage() {
   if (!session || !repo) {
     return (
       <div className="flex min-h-screen items-center justify-center">
-        <p className="text-muted-foreground">Session not found</p>
+        <p className="font-mono text-xs uppercase tracking-wider text-muted-foreground">
+          Session not found
+        </p>
       </div>
     );
   }
@@ -140,115 +164,189 @@ export default function SessionPage() {
   return (
     <div className="min-h-screen">
       {/* Header */}
-      <header className="sticky top-0 z-50 border-b border-border/50 bg-background/80 backdrop-blur-md">
-        <div className="mx-auto flex max-w-6xl items-center justify-between px-6 py-3">
-          <div className="flex items-center gap-3">
+      <header className="fixed top-0 z-50 w-full border-b border-border bg-background/90 backdrop-blur-sm">
+        <div className="mx-auto flex max-w-7xl items-center justify-between px-6 py-4">
+          <div className="flex items-center gap-4">
             <button
               onClick={() => router.push(`/repos/${repo.id}`)}
-              className="text-sm text-muted-foreground transition-colors hover:text-foreground"
+              className="font-mono text-xs uppercase tracking-wider text-muted-foreground transition-colors hover:text-foreground"
             >
               &larr; {repo.name}
             </button>
-            <Separator orientation="vertical" className="h-5" />
-            <h1 className="text-base font-semibold">{session.title}</h1>
-            <span
-              className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium ${STATUS_STYLES[session.status] || ''}`}
-            >
+            <span className="text-border">|</span>
+            <span className="font-mono text-sm">{session.title}</span>
+            <span className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground">
               {session.status}
+            </span>
+          </div>
+          {/* P2: Token Dashboard indicator */}
+          <div className="flex items-center gap-4">
+            <span className="font-mono text-[10px] uppercase tracking-wider text-muted-foreground">
+              Session #{session.id}
             </span>
           </div>
         </div>
       </header>
 
       {/* Content */}
-      <div className="mx-auto max-w-6xl px-6 py-8">
+      <div className="mx-auto max-w-7xl px-6 pt-24 pb-16">
         <Tabs value={activeTab} onValueChange={setActiveTab}>
           <TabsList>
-            <TabsTrigger value="compose">Compose</TabsTrigger>
+            <TabsTrigger value="compose">
+              <span className="font-mono text-xs uppercase tracking-wider">Compose</span>
+            </TabsTrigger>
             <TabsTrigger value="plan" disabled={!plan}>
-              Plan
+              <span className="font-mono text-xs uppercase tracking-wider">Plan</span>
             </TabsTrigger>
             <TabsTrigger value="review" disabled={!patch}>
-              Review
+              <span className="font-mono text-xs uppercase tracking-wider">Review</span>
             </TabsTrigger>
             <TabsTrigger value="validate" disabled={!patch}>
-              Validate
+              <span className="font-mono text-xs uppercase tracking-wider">Validate</span>
             </TabsTrigger>
           </TabsList>
 
-          <div className="mt-6">
+          <div className="mt-8">
+            {/* Compose */}
             <TabsContent value="compose">
               <div className="mx-auto max-w-2xl">
-                <Card>
-                  <CardHeader>
-                    <CardTitle>Describe Your Task</CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <TaskComposer onSubmit={handleGeneratePlan} loading={planLoading} />
-                  </CardContent>
-                </Card>
+                <div className="border border-border p-8">
+                  <p className="mb-6 font-mono text-xs uppercase tracking-[0.2em] text-muted-foreground">
+                    Describe Your Task
+                  </p>
+                  <TaskComposer onSubmit={handleGeneratePlan} loading={planLoading} />
+                </div>
               </div>
             </TabsContent>
 
+            {/* Plan */}
             <TabsContent value="plan">
               {plan && (
-                <div className="space-y-4">
+                <div className="space-y-6">
                   <PlanViewer plan={plan} />
-                  <div className="flex justify-end gap-3">
+                  <div className="flex justify-end gap-3 border-t border-border pt-6">
                     <Button variant="outline" onClick={() => setActiveTab('compose')}>
-                      Revise Task
+                      <span className="font-mono text-xs uppercase tracking-wider">
+                        Revise Task
+                      </span>
                     </Button>
                     <Button onClick={handleGeneratePatch} disabled={patchLoading}>
-                      {patchLoading ? 'Generating Patch...' : 'Generate Patch'}
+                      <span className="font-mono text-xs uppercase tracking-wider">
+                        {patchLoading ? 'Generating...' : 'Generate Patch'}
+                      </span>
                     </Button>
                   </div>
                 </div>
               )}
             </TabsContent>
 
+            {/* Review */}
             <TabsContent value="review">
               {patch && (
-                <div className="space-y-4">
+                <div className="space-y-6">
                   <DiffViewer changes={patch.changes} overallRationale={patch.overall_rationale} />
-                  <div className="flex justify-end gap-3">
-                    {patch.status === 'pending' && (
-                      <>
-                        <Button variant="outline" onClick={() => handlePatchAction('rejected')}>
-                          Reject
-                        </Button>
-                        <Button
-                          variant="outline"
-                          onClick={handleGeneratePatch}
-                          disabled={patchLoading}
-                        >
-                          Regenerate
-                        </Button>
-                        <Button onClick={() => handlePatchAction('accepted')}>
-                          Accept Changes
-                        </Button>
-                      </>
-                    )}
-                    {patch.status === 'accepted' && (
-                      <Badge variant="default" className="text-sm">
-                        Changes Accepted
-                      </Badge>
-                    )}
-                    {patch.status === 'rejected' && (
-                      <Badge variant="destructive" className="text-sm">
-                        Changes Rejected
-                      </Badge>
-                    )}
+                  <div className="flex items-center justify-between border-t border-border pt-6">
+                    <div>
+                      {patch.status === 'accepted' && (
+                        <div className="flex items-center gap-3">
+                          <span className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground">
+                            Accepted
+                          </span>
+                          {!prResult && (
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={handleExportPR}
+                              disabled={exporting}
+                            >
+                              <span className="font-mono text-xs uppercase tracking-wider">
+                                {exporting ? 'Exporting...' : 'Export as PR'}
+                              </span>
+                            </Button>
+                          )}
+                          {prResult && (
+                            <span className="font-mono text-xs text-muted-foreground">
+                              Branch: {prResult.branch}
+                              {prResult.pr_url && (
+                                <>
+                                  {' '}
+                                  &middot;{' '}
+                                  <a
+                                    href={prResult.pr_url}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="underline hover:text-foreground"
+                                  >
+                                    View PR
+                                  </a>
+                                </>
+                              )}
+                            </span>
+                          )}
+                        </div>
+                      )}
+                      {patch.status === 'rejected' && (
+                        <span className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground">
+                          Rejected
+                        </span>
+                      )}
+                    </div>
+                    <div className="flex gap-3">
+                      {patch.status === 'pending' && (
+                        <>
+                          <Button variant="outline" onClick={() => handlePatchAction('rejected')}>
+                            <span className="font-mono text-xs uppercase tracking-wider">
+                              Reject
+                            </span>
+                          </Button>
+                          <Button
+                            variant="outline"
+                            onClick={handleGeneratePatch}
+                            disabled={patchLoading}
+                          >
+                            <span className="font-mono text-xs uppercase tracking-wider">
+                              Regenerate
+                            </span>
+                          </Button>
+                          <Button onClick={() => handlePatchAction('accepted')}>
+                            <span className="font-mono text-xs uppercase tracking-wider">
+                              Accept
+                            </span>
+                          </Button>
+                        </>
+                      )}
+                    </div>
                   </div>
                 </div>
               )}
             </TabsContent>
 
+            {/* Validate */}
             <TabsContent value="validate">
-              <ValidationPanel
-                runs={validationRuns}
-                onRunValidation={handleRunValidation}
-                loading={validationLoading}
-              />
+              <div className="space-y-6">
+                <ValidationPanel
+                  runs={validationRuns}
+                  onRunValidation={handleRunValidation}
+                  loading={validationLoading}
+                />
+                {/* P1: Auto-fix loop */}
+                {hasFailedValidation && patch?.status === 'pending' && (
+                  <div className="border border-border p-6">
+                    <p className="mb-2 font-mono text-xs uppercase tracking-[0.2em] text-muted-foreground">
+                      Auto-Fix
+                    </p>
+                    <p className="mb-4 text-sm text-muted-foreground">
+                      Validation failed. Regenerate the patch with failure context to attempt an
+                      automatic fix.
+                    </p>
+                    <Button onClick={handleAutoFix} disabled={autoFixing}>
+                      <span className="font-mono text-xs uppercase tracking-wider">
+                        {autoFixing ? 'Fixing...' : 'Auto-Fix & Regenerate'}
+                      </span>
+                    </Button>
+                  </div>
+                )}
+              </div>
             </TabsContent>
           </div>
         </Tabs>
