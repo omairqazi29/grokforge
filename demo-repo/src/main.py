@@ -1,34 +1,24 @@
-from flask import Flask, jsonify, request
+#!/usr/bin/env python3
+"""Weather CLI."""
+import argparse
+import os
+import logging
+
 from src.weather_client import WeatherClient
-from src.cache import WeatherCache
 
-app = Flask(__name__)
-client = WeatherClient(api_key="demo-key")
-cache = WeatherCache(ttl_seconds=300)
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
 
+def main():
+    parser = argparse.ArgumentParser(description="Get current weather")
+    parser.add_argument("city")
+    parser.add_argument("--api-key", default=os.getenv("WEATHER_API_KEY"))
+    parser.add_argument("--timeout", type=float, default=10.0, help="Request timeout in seconds")
+    args = parser.parse_args()
 
-@app.route("/weather")
-def get_weather():
-    city = request.args.get("city")
-    if not city:
-        return jsonify({"error": "city parameter is required"}), 400
-
-    cached = cache.get(city)
-    if cached:
-        return jsonify({"source": "cache", **cached})
-
-    try:
-        data = client.fetch_weather(city)
-        cache.set(city, data)
-        return jsonify({"source": "api", **data})
-    except Exception as e:
-        return jsonify({"error": str(e)}), 500
-
-
-@app.route("/health")
-def health():
-    return jsonify({"status": "ok"})
-
+    client = WeatherClient(args.api_key, timeout=args.timeout)
+    weather = client.get_weather(args.city)
+    print(weather)
 
 if __name__ == "__main__":
-    app.run(port=5000, debug=True)
+    main()

@@ -62,6 +62,16 @@ async def export_patch_as_pr(
     branch_name = body.branch_name or f"grokforge/session-{session_id}"
     changes = patch.changes or []
 
+    # Check if repo is a git repo
+    if not os.path.isdir(os.path.join(repo.path, ".git")):
+        # Not a git repo — init one, apply changes as files only
+        try:
+            await _run_git(repo.path, "init")
+            await _run_git(repo.path, "add", ".")
+            await _run_git(repo.path, "commit", "-m", "initial commit")
+        except Exception:
+            pass
+
     try:
         # Create branch
         await _run_git(repo.path, "checkout", "-b", branch_name)
