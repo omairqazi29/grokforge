@@ -67,6 +67,6 @@
 
 ## Phase 8: CI + Polish
 
-- [ ] GitHub Actions CI workflow
-- [ ] PR template
-- [ ] Final polish
+- [x] GitHub Actions CI workflow
+- [x] PR template
+- [x] Final polish
