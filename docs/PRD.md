@@ -58,18 +58,19 @@ GrokForge:
 
 ### P2 - Nice to Have
 
-| Feature              | Description                                       |
-| -------------------- | ------------------------------------------------- |
-| GitHub PR Generation | Export accepted patches as draft pull requests    |
-| Multi-agent Mode     | Separate planner/coder/reviewer agents            |
-| Token Dashboard      | Cost and token usage tracking per session         |
-| Repo Memory Graph    | Persistent architecture knowledge across sessions |
+| Feature              | Description                                                |
+| -------------------- | ---------------------------------------------------------- |
+| GitHub PR Generation | Export accepted patches as draft pull requests             |
+| Multi-agent Mode     | Separate planner/coder/reviewer agents                     |
+| Token Dashboard      | Cost and token usage tracking per session                  |
+| Repo Memory Graph    | Persistent architecture knowledge across sessions          |
+| Cloud Execution      | Sandboxed containers for validation, no local env required |
+| Mobile Dispatch      | PWA/mobile app to dispatch tasks and review PRs from phone |
 
 ## Non-Goals for MVP
 
 - Full IDE replacement
 - Multi-user collaboration
-- Cloud execution environment
 - Fine-grained per-tool permissions
 - Real-time streaming responses
 

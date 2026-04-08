@@ -34,8 +34,10 @@ GrokForge is a repo-aware coding workspace MVP. Monorepo with Next.js frontend, 
 - apps/api owns all filesystem + subprocess operations
 - AI provider interface: apps/api/app/ai/provider.py
 - All API responses use Pydantic schemas from apps/api/app/schemas/
-- Mock AI provider by default. Real Grok API only when XAI_API_KEY is set.
+- Grok provider uses xAI API at api.x.ai/v1 with structured outputs (json_schema)
+- Set XAI_API_KEY env var to use real Grok; unset for mock provider
 - SQLite at apps/api/grokforge.db (gitignored)
+- demo-repo/ is included for interview demos (WeatherAPI project)
 
 ## Style
 

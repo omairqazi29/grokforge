@@ -78,12 +78,12 @@ export default function RepoPage() {
   return (
     <div className="min-h-screen">
       {/* Header */}
-      <header className="border-b border-border">
-        <div className="mx-auto flex max-w-6xl items-center justify-between px-6 py-4">
+      <header className="sticky top-0 z-50 border-b border-border/50 bg-background/80 backdrop-blur-md">
+        <div className="mx-auto flex max-w-6xl items-center justify-between px-6 py-3">
           <div className="flex items-center gap-3">
             <button
               onClick={() => router.push('/')}
-              className="text-sm text-muted-foreground hover:text-foreground"
+              className="text-sm text-muted-foreground transition-colors hover:text-foreground"
             >
               &larr; Back
             </button>
