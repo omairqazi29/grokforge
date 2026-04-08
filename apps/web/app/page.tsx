@@ -60,12 +60,20 @@ export default function Home() {
               by xAI
             </span>
           </div>
-          <button
-            onClick={() => router.push('/dashboard')}
-            className="font-mono text-xs uppercase tracking-wider text-muted-foreground transition-colors hover:text-foreground"
-          >
-            Dashboard
-          </button>
+          <div className="flex items-center gap-5">
+            <button
+              onClick={() => router.push('/github')}
+              className="font-mono text-xs uppercase tracking-wider text-muted-foreground transition-colors hover:text-foreground"
+            >
+              GitHub
+            </button>
+            <button
+              onClick={() => router.push('/dashboard')}
+              className="font-mono text-xs uppercase tracking-wider text-muted-foreground transition-colors hover:text-foreground"
+            >
+              Dashboard
+            </button>
+          </div>
           <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
             <DialogTrigger render={<Button size="sm" />}>
               <span className="font-mono text-xs uppercase tracking-wider">Connect Repo</span>
