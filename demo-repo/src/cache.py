@@ -1,4 +1,5 @@
 import time
+from typing import Optional
 
 
 class WeatherCache:
@@ -8,7 +9,7 @@ class WeatherCache:
         self.ttl = ttl_seconds
         self._store: dict = {}
 
-    def get(self, key: str) -> dict | None:
+    def get(self, key: str) -> Optional[dict]:
         entry = self._store.get(key)
         if entry is None:
             return None

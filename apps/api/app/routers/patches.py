@@ -1,3 +1,5 @@
+import os
+
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -49,6 +51,7 @@ async def generate_patch(session_id: int, db: AsyncSession = Depends(get_db)):
         for c in patch.changes
     ]
     existing_patch.overall_rationale = patch.overall_rationale
+    existing_patch.status = "pending"
 
     session.status = "reviewing"
     await db.commit()
@@ -67,11 +70,35 @@ async def update_patch_status(
     if not patch or patch.session_id != session_id:
         raise HTTPException(status_code=404, detail="Patch not found")
 
+    session = await db.get(Session, session_id)
+    repo = await db.get(Repository, session.repository_id)
+
     patch.status = body.status
 
-    session = await db.get(Session, session_id)
-    if body.status == "accepted":
+    # When accepting, write patched files to disk
+    if body.status == "accepted" and repo and patch.changes:
+        for change in patch.changes:
+            file_path = change.get("file_path", "")
+            patched_content = change.get("patched_content", "")
+            if file_path and patched_content:
+                full_path = os.path.join(repo.path, file_path)
+                os.makedirs(os.path.dirname(full_path), exist_ok=True)
+                with open(full_path, "w") as f:
+                    f.write(patched_content)
+
         session.status = "completed"
+    elif body.status == "rejected":
+        # Revert files to original content
+        if repo and patch.changes:
+            for change in patch.changes:
+                file_path = change.get("file_path", "")
+                original_content = change.get("original_content", "")
+                if file_path and original_content:
+                    full_path = os.path.join(repo.path, file_path)
+                    if os.path.exists(full_path):
+                        with open(full_path, "w") as f:
+                            f.write(original_content)
+
     await db.commit()
     await db.refresh(patch)
     return patch
