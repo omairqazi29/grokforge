@@ -3,7 +3,6 @@
 import { useEffect, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import {
   Dialog,
@@ -24,7 +23,6 @@ export default function RepoPage() {
   const [sessions, setSessions] = useState<Session[]>([]);
   const [loading, setLoading] = useState(true);
   const [dialogOpen, setDialogOpen] = useState(false);
-  const [title, setTitle] = useState('');
   const [taskDesc, setTaskDesc] = useState('');
   const [creating, setCreating] = useState(false);
 
@@ -39,15 +37,18 @@ export default function RepoPage() {
   }, [repoId]);
 
   const handleCreateSession = async () => {
-    if (!title.trim() || !taskDesc.trim()) return;
+    if (!taskDesc.trim()) return;
     setCreating(true);
+    const task = taskDesc.trim();
+    const autoTitle = task.length > 60 ? task.slice(0, 57) + '...' : task;
     try {
       const session = await api.sessions.create({
         repository_id: repoId,
-        title: title.trim(),
-        task_description: taskDesc.trim(),
+        title: autoTitle,
+        task_description: task,
       });
       setDialogOpen(false);
+      setTaskDesc('');
       router.push(`/sessions/${session.id}`);
     } catch (err) {
       console.error(err);
@@ -112,18 +113,7 @@ export default function RepoPage() {
               <div className="space-y-4 pt-4">
                 <div>
                   <label className="mb-1.5 block font-mono text-xs uppercase tracking-wider text-muted-foreground">
-                    Title
-                  </label>
-                  <Input
-                    placeholder="Add retry logic to API client"
-                    value={title}
-                    onChange={(e) => setTitle(e.target.value)}
-                    className="font-mono text-sm"
-                  />
-                </div>
-                <div>
-                  <label className="mb-1.5 block font-mono text-xs uppercase tracking-wider text-muted-foreground">
-                    Task
+                    What do you want to change?
                   </label>
                   <Textarea
                     placeholder="Describe what you want to change..."
