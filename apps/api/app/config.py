@@ -5,7 +5,7 @@ from pydantic_settings import BaseSettings
 
 
 class Settings(BaseSettings):
-    model_config = ConfigDict(env_prefix="GROKFORGE_", env_file=".env")
+    model_config = ConfigDict(env_file=".env", extra="ignore")
 
     database_url: str = "sqlite+aiosqlite:///./grokforge.db"
     xai_api_key: str = ""
