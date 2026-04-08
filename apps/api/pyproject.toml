@@ -1,0 +1,16 @@
+[project]
+name = "grokforge-api"
+version = "0.1.0"
+description = "GrokForge API - repo-aware coding workspace backend"
+requires-python = ">=3.9"
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+asyncio_mode = "auto"
+
+[tool.ruff]
+target-version = "py39"
+line-length = 100
+
+[tool.ruff.lint]
+select = ["E", "F", "I"]
