@@ -146,9 +146,25 @@ class AIProvider(ABC):
     async def explain_diff(diff, file_path) -> str
 ```
 
-**Mock Provider**: Returns realistic structured data. Used by default.
+**Mock Provider**: Returns realistic structured data. Used when `XAI_API_KEY` is not set.
 
-**Grok Provider**: Stub documenting xAI API integration. The API is OpenAI-compatible at `https://api.x.ai/v1`. Supports structured outputs via `response_format` with JSON schema. Activate by setting `XAI_API_KEY`.
+**Grok Provider**: Fully implemented xAI API integration. Calls `api.x.ai/v1/chat/completions` with `response_format` JSON schema for guaranteed structured responses. Uses `grok-4-1-fast` by default. Activate by setting `XAI_API_KEY`.
+
+```python
+# How Grok structured outputs work in GrokForge:
+response = await httpx.post("https://api.x.ai/v1/chat/completions", json={
+    "model": "grok-4-1-fast",
+    "messages": [...],
+    "response_format": {
+        "type": "json_schema",
+        "json_schema": {
+            "name": "plan",
+            "strict": True,
+            "schema": { ... }  # Guarantees schema-compliant JSON
+        }
+    }
+})
+```
 
 ## Database Schema
 
@@ -164,11 +180,25 @@ validation_runs (id, session_id FK, patch_artifact_id FK, command, exit_code, st
 
 | Decision             | Rationale                                                                      |
 | -------------------- | ------------------------------------------------------------------------------ |
-| Mock-first AI        | Build entire UX without API credits. Provider swap is 1 env var.               |
+| Grok + mock fallback | Real Grok via structured outputs; mock for zero-cost demos. 1 env var swap.    |
 | SQLite               | Zero infrastructure. Clone + run = working app. SQLAlchemy → Postgres trivial. |
 | FastAPI + Next.js    | Python handles subprocess/filesystem (security). Mirrors real infra patterns.  |
-| Provider abstraction | Interview talking point: "provider-agnostic but optimized for Grok."           |
+| API-first design     | Same REST endpoints work for web, mobile, CLI, or webhook clients.             |
 | Local-first          | Interviewer can clone and demo immediately. No Docker required.                |
+
+## Cloud-Ready Architecture
+
+The system is designed to go cloud-native with scoped changes:
+
+```
+Local (MVP)              →    Cloud (Next)
+─────────────────────────────────────────────
+SQLite                   →    Postgres
+Local filesystem scan    →    GitHub/GitLab API
+Subprocess validation    →    Sandboxed containers
+Browser-only frontend    →    PWA + mobile dispatch
+Single-user              →    OAuth + team dashboards
+```
 
 ## Security Boundaries
 
@@ -177,3 +207,4 @@ validation_runs (id, session_id FK, patch_artifact_id FK, command, exit_code, st
 - No `shell=True` in subprocess execution
 - File scanning respects `.gitignore` and size limits
 - CORS restricted to `localhost:3000` by default
+- API key never sent to frontend; Grok calls happen server-side only

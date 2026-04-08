@@ -60,13 +60,19 @@ pnpm dev
 
 The web app runs at `http://localhost:3000` and the API at `http://localhost:8000`.
 
-### Using a Real AI Provider
+### Demo Repository
 
-By default, GrokForge uses a mock AI provider. To use the real Grok API:
+A sample project (`demo-repo/`) is included for demos. It's a small Python weather API with intentional gaps (no retry logic, unbounded cache) — perfect tasks to demo with GrokForge.
+
+### Using Grok (xAI API)
+
+By default, GrokForge uses a mock AI provider. To connect real Grok:
 
 ```bash
-export XAI_API_KEY=your-api-key-here
+export XAI_API_KEY=xai-your-api-key-here
 ```
+
+The Grok provider uses structured outputs (`response_format` with JSON schema) to guarantee schema-compliant plans, patches, and analysis. Model: `grok-4-1-fast`.
 
 ## Documentation
 

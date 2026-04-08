@@ -108,10 +108,23 @@ export default function SessionPage() {
     }
   };
 
+  const STATUS_STYLES: Record<string, string> = {
+    created: 'bg-muted text-muted-foreground',
+    planning: 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400',
+    planned: 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400',
+    patching: 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400',
+    reviewing: 'bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-400',
+    validating: 'bg-orange-100 text-orange-800 dark:bg-orange-900/30 dark:text-orange-400',
+    completed: 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400',
+  };
+
   if (loading) {
     return (
       <div className="flex min-h-screen items-center justify-center">
-        <p className="text-muted-foreground">Loading session...</p>
+        <div className="flex flex-col items-center gap-3">
+          <div className="h-8 w-8 animate-spin rounded-full border-2 border-primary border-t-transparent" />
+          <p className="text-sm text-muted-foreground">Loading session...</p>
+        </div>
       </div>
     );
   }
@@ -127,18 +140,22 @@ export default function SessionPage() {
   return (
     <div className="min-h-screen">
       {/* Header */}
-      <header className="border-b border-border">
-        <div className="mx-auto flex max-w-6xl items-center justify-between px-6 py-4">
+      <header className="sticky top-0 z-50 border-b border-border/50 bg-background/80 backdrop-blur-md">
+        <div className="mx-auto flex max-w-6xl items-center justify-between px-6 py-3">
           <div className="flex items-center gap-3">
             <button
               onClick={() => router.push(`/repos/${repo.id}`)}
-              className="text-sm text-muted-foreground hover:text-foreground"
+              className="text-sm text-muted-foreground transition-colors hover:text-foreground"
             >
               &larr; {repo.name}
             </button>
-            <Separator orientation="vertical" className="h-6" />
-            <h1 className="text-lg font-semibold">{session.title}</h1>
-            <Badge variant="outline">{session.status}</Badge>
+            <Separator orientation="vertical" className="h-5" />
+            <h1 className="text-base font-semibold">{session.title}</h1>
+            <span
+              className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium ${STATUS_STYLES[session.status] || ''}`}
+            >
+              {session.status}
+            </span>
           </div>
         </div>
       </header>

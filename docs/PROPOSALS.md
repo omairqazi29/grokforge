@@ -94,19 +94,48 @@ Three separate products would duplicate context-building, patch generation, and 
 
 ---
 
+## Cloud & Mobile Dispatch Vision
+
+GrokForge is built local-first for the MVP, but the architecture is designed to go cloud-native:
+
+### GrokForge Cloud
+
+- **Hosted workspaces**: Connect GitHub/GitLab repos, run everything server-side
+- **Cloud validation**: Sandboxed containers for safe test/lint/build execution
+- **Team dashboards**: Shared session history, approval workflows, audit trails
+- **Webhook triggers**: GitHub issue → automatic Ops pipeline → PR draft in minutes
+
+### GrokForge Mobile (Dispatch from Your Phone)
+
+The most powerful unlock: **dispatch coding tasks from your phone**.
+
+- Open the mobile app or PWA
+- Pick a repo, type a task: _"Fix the flaky auth test in CI"_
+- GrokForge runs the full loop in the cloud: plan → patch → validate → PR
+- Get a push notification when the PR is ready for review
+- Review the diff, approve, and merge — all from your phone
+
+**Why this matters**: Engineering leaders and on-call developers need to unblock work without opening a laptop. A mobile dispatch interface turns Grok into an always-available engineering teammate.
+
+**Technical feasibility**: The API-first architecture already supports this. The frontend is a thin client over REST endpoints. A mobile client (React Native or PWA) would call the same API. Cloud execution requires moving the validation runner to sandboxed containers — a scoped infrastructure change, not a rewrite.
+
+---
+
 ## Technical Architecture
 
 - **Frontend**: Next.js + TypeScript + Tailwind + shadcn/ui
-- **Backend**: FastAPI + SQLAlchemy + SQLite
-- **AI Layer**: Provider-agnostic interface, optimized for Grok
-- **Design**: Monorepo, local-first, zero infrastructure requirements
+- **Backend**: FastAPI + SQLAlchemy + SQLite (Postgres-ready via SQLAlchemy)
+- **AI Layer**: Grok integration via xAI API with structured outputs, mock fallback
+- **Design**: Monorepo, API-first, ready for cloud deployment
 
-The AI provider is swappable by design. Set `XAI_API_KEY` to switch from mock to real Grok. The provider interface (`summarize_repo`, `generate_plan`, `propose_patch`, `analyze_validation`, `explain_diff`) maps cleanly to xAI's structured output capabilities.
+The Grok provider uses the xAI chat completions API at `api.x.ai/v1` with structured outputs (JSON schema in `response_format`). Every AI method returns guaranteed-schema JSON: plans, patches, validation analysis. Set `XAI_API_KEY` to activate real Grok; unset for mock data.
 
 ---
 
 ## Interview Positioning
 
-> "I noticed xAI has strong model capability for coding, but there's a meaningful product gap between a coding model and a complete software engineering workflow. So I built GrokForge - a repo-aware coding workspace with three integrated layers: Workspace for interactive coding, Lens for codebase intelligence, and Ops for autonomous PRs.
+> "I noticed xAI has strong model capability for coding, but there's a meaningful product gap between a coding model and a complete software engineering workflow. So I built GrokForge — a repo-aware coding workspace with three integrated layers: Workspace for interactive coding, Lens for codebase intelligence, and Ops for autonomous PRs.
 >
-> What I wanted to demonstrate is that I understand both sides: model capability and product execution. The architecture is provider-agnostic but optimized for Grok's structured output and tool-calling capabilities."
+> It works locally today, but the architecture is API-first so it's ready to go cloud-native. The most exciting unlock is mobile dispatch — imagine opening your phone, typing 'fix the flaky CI test,' and getting a reviewed PR back in minutes. The backend already supports it; it's just a frontend surface away.
+>
+> What I wanted to demonstrate is that I understand both sides: model capability and product execution. The Grok provider uses structured outputs to guarantee schema-compliant plans and patches. The architecture is provider-agnostic but optimized for xAI's API capabilities."
