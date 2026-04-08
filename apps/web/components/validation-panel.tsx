@@ -2,10 +2,7 @@
 
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
-import { Badge } from '@/components/ui/badge';
-import { ScrollArea } from '@/components/ui/scroll-area';
 import type { ValidationRun } from '@/lib/api-client';
 
 interface ValidationPanelProps {
@@ -23,60 +20,75 @@ export function ValidationPanel({ runs, onRunValidation, loading }: ValidationPa
   };
 
   return (
-    <div className="space-y-4">
-      <div className="flex gap-2">
+    <div className="space-y-6">
+      {/* Command input */}
+      <div className="flex gap-3">
         <Input
-          placeholder="e.g., npm test, pytest, pnpm lint"
+          placeholder="pytest, npm test, pnpm lint..."
           value={command}
           onChange={(e) => setCommand(e.target.value)}
           onKeyDown={(e) => e.key === 'Enter' && handleRun()}
-          className="font-mono"
+          className="font-mono text-sm"
         />
         <Button onClick={handleRun} disabled={loading || !command.trim()}>
-          {loading ? 'Running...' : 'Run'}
+          <span className="font-mono text-xs uppercase tracking-wider">
+            {loading ? 'Running...' : 'Run'}
+          </span>
         </Button>
       </div>
 
+      {/* Results */}
       {runs.map((run) => (
-        <Card key={run.id}>
-          <CardHeader className="pb-3">
-            <div className="flex items-center justify-between">
-              <CardTitle className="font-mono text-sm">{run.command}</CardTitle>
-              <div className="flex items-center gap-2">
-                <Badge variant={run.exit_code === 0 ? 'default' : 'destructive'}>
-                  {run.exit_code === 0 ? 'PASS' : `EXIT ${run.exit_code}`}
-                </Badge>
-                <span className="text-xs text-muted-foreground">{run.duration_ms}ms</span>
-              </div>
+        <div key={run.id} className="border border-border">
+          {/* Header */}
+          <div className="flex items-center justify-between border-b border-border px-6 py-4">
+            <span className="font-mono text-sm">{run.command}</span>
+            <div className="flex items-center gap-4">
+              <span
+                className={`font-mono text-xs uppercase tracking-wider ${
+                  run.exit_code === 0 ? 'text-green-400' : 'text-red-400'
+                }`}
+              >
+                {run.exit_code === 0 ? 'PASS' : `EXIT ${run.exit_code}`}
+              </span>
+              <span className="font-mono text-[10px] text-muted-foreground">
+                {run.duration_ms}ms
+              </span>
             </div>
-          </CardHeader>
-          <CardContent className="space-y-3">
+          </div>
+
+          {/* Output */}
+          <div className="divide-y divide-border">
             {run.stdout && (
-              <div>
-                <p className="mb-1 text-xs font-medium text-muted-foreground">stdout</p>
-                <ScrollArea className="max-h-[200px]">
-                  <pre className="rounded-md bg-muted p-3 font-mono text-xs">{run.stdout}</pre>
-                </ScrollArea>
+              <div className="p-4">
+                <p className="mb-2 font-mono text-[10px] uppercase tracking-widest text-muted-foreground">
+                  stdout
+                </p>
+                <pre className="max-h-[250px] overflow-auto font-mono text-xs leading-5 text-foreground/70">
+                  {run.stdout}
+                </pre>
               </div>
             )}
             {run.stderr && (
-              <div>
-                <p className="mb-1 text-xs font-medium text-muted-foreground">stderr</p>
-                <ScrollArea className="max-h-[200px]">
-                  <pre className="rounded-md bg-red-50 p-3 font-mono text-xs text-red-800 dark:bg-red-950 dark:text-red-200">
-                    {run.stderr}
-                  </pre>
-                </ScrollArea>
+              <div className="p-4">
+                <p className="mb-2 font-mono text-[10px] uppercase tracking-widest text-red-400/70">
+                  stderr
+                </p>
+                <pre className="max-h-[250px] overflow-auto font-mono text-xs leading-5 text-red-400/80">
+                  {run.stderr}
+                </pre>
               </div>
             )}
             {run.analysis && (
-              <div>
-                <p className="mb-1 text-xs font-medium text-muted-foreground">Analysis</p>
-                <p className="text-sm">{run.analysis}</p>
+              <div className="p-4">
+                <p className="mb-2 font-mono text-[10px] uppercase tracking-widest text-muted-foreground">
+                  Analysis
+                </p>
+                <p className="text-xs leading-relaxed text-foreground/70">{run.analysis}</p>
               </div>
             )}
-          </CardContent>
-        </Card>
+          </div>
+        </div>
       ))}
     </div>
   );

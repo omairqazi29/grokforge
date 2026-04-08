@@ -8,6 +8,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { PlanViewer } from '@/components/plan-viewer';
 import { DiffViewer } from '@/components/diff-viewer';
 import { ValidationPanel } from '@/components/validation-panel';
+import { ThinkingIndicator } from '@/components/thinking-indicator';
 import {
   api,
   Session,
@@ -36,6 +37,16 @@ export default function SessionPage() {
   const [autoFixing, setAutoFixing] = useState(false);
   const [exporting, setExporting] = useState(false);
   const [prResult, setPrResult] = useState<PRExportResult | null>(null);
+  const [reviewComments, setReviewComments] = useState<
+    { comment: string; filePath: string; line?: number }[]
+  >([]);
+  const thinkingStage = planLoading
+    ? 'planning'
+    : patchLoading
+      ? 'patching'
+      : validationLoading
+        ? 'validating'
+        : ('idle' as const);
 
   useEffect(() => {
     api.sessions
@@ -140,6 +151,10 @@ export default function SessionPage() {
     }
   };
 
+  const handleReviewComment = (comment: string, filePath: string, line?: number) => {
+    setReviewComments((prev) => [...prev, { comment, filePath, line }]);
+  };
+
   const hasFailedValidation = validationRuns.some((r) => r.exit_code !== 0);
 
   if (loading) {
@@ -204,6 +219,20 @@ export default function SessionPage() {
               <span className="font-mono text-xs uppercase tracking-wider">Validate</span>
             </TabsTrigger>
           </TabsList>
+
+          {/* Thinking animation */}
+          {thinkingStage !== 'idle' && (
+            <div className="mt-8">
+              <ThinkingIndicator
+                stage={thinkingStage}
+                files={
+                  repo?.file_tree.filter(
+                    (f: string) => f.endsWith('.py') || f.endsWith('.ts') || f.endsWith('.tsx'),
+                  ) || []
+                }
+              />
+            </div>
+          )}
 
           <div className="mt-8">
             {/* Compose — shows the task and a generate button */}
@@ -271,7 +300,30 @@ export default function SessionPage() {
             <TabsContent value="review">
               {patch && (
                 <div className="space-y-6">
-                  <DiffViewer changes={patch.changes} overallRationale={patch.overall_rationale} />
+                  <DiffViewer
+                    changes={patch.changes}
+                    overallRationale={patch.overall_rationale}
+                    onReviewComment={patch.status === 'pending' ? handleReviewComment : undefined}
+                  />
+                  {/* Review comments */}
+                  {reviewComments.length > 0 && (
+                    <div className="border border-border p-6">
+                      <p className="mb-3 font-mono text-[10px] uppercase tracking-widest text-muted-foreground">
+                        Review Comments ({reviewComments.length})
+                      </p>
+                      <div className="space-y-3">
+                        {reviewComments.map((rc, i) => (
+                          <div key={i} className="flex gap-3 text-xs">
+                            <span className="shrink-0 font-mono text-muted-foreground">
+                              {rc.filePath}
+                              {rc.line ? `:${rc.line}` : ''}
+                            </span>
+                            <span className="text-foreground/70">{rc.comment}</span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
                   <div className="flex items-center justify-between border-t border-border pt-6">
                     <div>
                       {patch.status === 'accepted' && (
