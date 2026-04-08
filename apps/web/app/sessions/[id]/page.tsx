@@ -237,22 +237,26 @@ export default function SessionPage() {
           <div className="mt-8">
             {/* Compose — shows the task and a generate button */}
             <TabsContent value="compose">
-              <div className="mx-auto max-w-2xl">
-                <div className="border border-border p-8">
-                  <p className="mb-2 font-mono text-xs uppercase tracking-[0.2em] text-muted-foreground">
-                    Task
-                  </p>
-                  <p className="mb-6 text-sm leading-relaxed">{session.task_description}</p>
+              <div className="mx-auto max-w-3xl">
+                <div className="border border-border">
+                  <div className="border-b border-border px-8 py-5">
+                    <p className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground">
+                      Task
+                    </p>
+                  </div>
+                  <div className="px-8 py-6">
+                    <p className="text-sm leading-[1.8]">{session.task_description}</p>
+                  </div>
                   {session.constraints && session.constraints.length > 0 && (
-                    <div className="mb-6">
-                      <p className="mb-2 font-mono text-xs uppercase tracking-[0.2em] text-muted-foreground">
+                    <div className="border-t border-border px-8 py-5">
+                      <p className="mb-3 font-mono text-[10px] uppercase tracking-widest text-muted-foreground">
                         Constraints
                       </p>
                       <div className="flex flex-wrap gap-2">
                         {session.constraints.map((c) => (
                           <span
                             key={c}
-                            className="border border-border px-2 py-1 font-mono text-xs"
+                            className="border border-border px-3 py-1 font-mono text-xs text-foreground/70"
                           >
                             {c}
                           </span>
@@ -260,17 +264,19 @@ export default function SessionPage() {
                       </div>
                     </div>
                   )}
-                  <Button
-                    onClick={() =>
-                      handleGeneratePlan(session.task_description, session.constraints || [])
-                    }
-                    disabled={planLoading}
-                    className="w-full"
-                  >
-                    <span className="font-mono text-xs uppercase tracking-wider">
-                      {planLoading ? 'Generating Plan...' : 'Generate Plan'}
-                    </span>
-                  </Button>
+                  <div className="border-t border-border p-4">
+                    <Button
+                      onClick={() =>
+                        handleGeneratePlan(session.task_description, session.constraints || [])
+                      }
+                      disabled={planLoading}
+                      className="w-full py-3"
+                    >
+                      <span className="font-mono text-xs uppercase tracking-[0.15em]">
+                        {planLoading ? 'Generating Plan...' : 'Generate Plan'}
+                      </span>
+                    </Button>
+                  </div>
                 </div>
               </div>
             </TabsContent>

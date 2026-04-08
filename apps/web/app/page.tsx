@@ -100,29 +100,42 @@ export default function Home() {
       {!loading && repos.length === 0 && (
         <div className="flex min-h-screen flex-col items-center justify-center px-6 pt-16">
           <div className="max-w-3xl text-center">
-            <p className="mb-6 font-mono text-xs uppercase tracking-[0.3em] text-muted-foreground">
+            <p
+              className="mb-8 font-mono text-xs uppercase tracking-[0.3em] text-muted-foreground"
+              style={{ animation: 'fadeIn 0.8s ease-out 0.1s both' }}
+            >
               Repo-Aware Coding Workspace
             </p>
-            <h1 className="font-mono text-5xl font-light leading-[1.1] tracking-tight sm:text-7xl">
+            <h1
+              className="font-mono text-5xl font-light leading-[1.1] tracking-tight sm:text-7xl"
+              style={{ animation: 'fadeIn 1s ease-out 0.3s both' }}
+            >
               Engineer
               <br />
               with Grok
             </h1>
-            <p className="mx-auto mt-8 max-w-lg text-base leading-relaxed text-muted-foreground">
-              Plan tasks. Generate patches. Run validation. Review diffs. All in one loop, powered
-              by Grok&apos;s structured outputs.
+            <p
+              className="mx-auto mt-8 max-w-lg text-base leading-[1.8] text-muted-foreground"
+              style={{ animation: 'fadeIn 1s ease-out 0.6s both' }}
+            >
+              Plan tasks. Generate patches. Run validation. Review diffs.
+              <br />
+              All in one loop, powered by Grok&apos;s structured outputs.
             </p>
-            <div className="mt-12 flex justify-center gap-4">
-              <Button size="lg" onClick={() => setDialogOpen(true)} className="px-8">
-                <span className="font-mono text-xs uppercase tracking-wider">Get Started</span>
+            <div
+              className="mt-14 flex justify-center gap-4"
+              style={{ animation: 'fadeIn 1s ease-out 0.9s both' }}
+            >
+              <Button size="lg" onClick={() => setDialogOpen(true)} className="px-10 py-3">
+                <span className="font-mono text-xs uppercase tracking-[0.15em]">Get Started</span>
               </Button>
               <Button
                 variant="outline"
                 size="lg"
-                className="px-8"
+                className="px-10 py-3"
                 onClick={() => window.open('https://github.com/omairqazi29/grokforge', '_blank')}
               >
-                <span className="font-mono text-xs uppercase tracking-wider">View Source</span>
+                <span className="font-mono text-xs uppercase tracking-[0.15em]">View Source</span>
               </Button>
             </div>
           </div>
