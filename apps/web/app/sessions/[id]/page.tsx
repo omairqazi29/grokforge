@@ -5,7 +5,6 @@ import { useParams, useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { TaskComposer } from '@/components/task-composer';
 import { PlanViewer } from '@/components/plan-viewer';
 import { DiffViewer } from '@/components/diff-viewer';
 import { ValidationPanel } from '@/components/validation-panel';
@@ -207,14 +206,42 @@ export default function SessionPage() {
           </TabsList>
 
           <div className="mt-8">
-            {/* Compose */}
+            {/* Compose — shows the task and a generate button */}
             <TabsContent value="compose">
               <div className="mx-auto max-w-2xl">
                 <div className="border border-border p-8">
-                  <p className="mb-6 font-mono text-xs uppercase tracking-[0.2em] text-muted-foreground">
-                    Describe Your Task
+                  <p className="mb-2 font-mono text-xs uppercase tracking-[0.2em] text-muted-foreground">
+                    Task
                   </p>
-                  <TaskComposer onSubmit={handleGeneratePlan} loading={planLoading} />
+                  <p className="mb-6 text-sm leading-relaxed">{session.task_description}</p>
+                  {session.constraints && session.constraints.length > 0 && (
+                    <div className="mb-6">
+                      <p className="mb-2 font-mono text-xs uppercase tracking-[0.2em] text-muted-foreground">
+                        Constraints
+                      </p>
+                      <div className="flex flex-wrap gap-2">
+                        {session.constraints.map((c) => (
+                          <span
+                            key={c}
+                            className="border border-border px-2 py-1 font-mono text-xs"
+                          >
+                            {c}
+                          </span>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                  <Button
+                    onClick={() =>
+                      handleGeneratePlan(session.task_description, session.constraints || [])
+                    }
+                    disabled={planLoading}
+                    className="w-full"
+                  >
+                    <span className="font-mono text-xs uppercase tracking-wider">
+                      {planLoading ? 'Generating Plan...' : 'Generate Plan'}
+                    </span>
+                  </Button>
                 </div>
               </div>
             </TabsContent>
