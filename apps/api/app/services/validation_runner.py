@@ -2,8 +2,6 @@ import asyncio
 import time
 from dataclasses import dataclass
 
-
-ALLOWED_COMMANDS = {"npm", "npx", "pnpm", "yarn", "pytest", "python", "node", "make", "ruff"}
 TIMEOUT_SECONDS = 120
 
 
@@ -17,23 +15,13 @@ class ValidationResult:
 
 class ValidationRunner:
     async def run(self, command: str, cwd: str) -> ValidationResult:
-        parts = command.split()
-        if not parts:
+        if not command.strip():
             return ValidationResult(exit_code=1, stdout="", stderr="Empty command", duration_ms=0)
-
-        base_cmd = parts[0]
-        if base_cmd not in ALLOWED_COMMANDS:
-            return ValidationResult(
-                exit_code=1,
-                stdout="",
-                stderr=f"Command '{base_cmd}' is not in the allowed list: {ALLOWED_COMMANDS}",
-                duration_ms=0,
-            )
 
         start = time.monotonic()
         try:
-            proc = await asyncio.create_subprocess_exec(
-                *parts,
+            proc = await asyncio.create_subprocess_shell(
+                command,
                 cwd=cwd,
                 stdout=asyncio.subprocess.PIPE,
                 stderr=asyncio.subprocess.PIPE,
@@ -44,8 +32,8 @@ class ValidationRunner:
             elapsed = int((time.monotonic() - start) * 1000)
             return ValidationResult(
                 exit_code=proc.returncode or 0,
-                stdout=stdout.decode(errors="replace")[:10000],
-                stderr=stderr.decode(errors="replace")[:10000],
+                stdout=stdout.decode(errors="replace")[:50000],
+                stderr=stderr.decode(errors="replace")[:50000],
                 duration_ms=elapsed,
             )
         except asyncio.TimeoutError:
@@ -56,10 +44,10 @@ class ValidationRunner:
                 stderr=f"Command timed out after {TIMEOUT_SECONDS}s",
                 duration_ms=elapsed,
             )
-        except FileNotFoundError:
+        except Exception as e:
             return ValidationResult(
-                exit_code=127,
+                exit_code=1,
                 stdout="",
-                stderr=f"Command not found: {base_cmd}",
-                duration_ms=0,
+                stderr=str(e),
+                duration_ms=int((time.monotonic() - start) * 1000),
             )

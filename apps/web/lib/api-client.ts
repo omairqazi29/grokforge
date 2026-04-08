@@ -113,6 +113,21 @@ export interface PRExportResult {
   files_changed: number;
   message: string;
   pr_url: string | null;
+  commit_sha: string | null;
+}
+
+// GitHub types
+export interface GitHubUser {
+  login: string;
+  name: string | null;
+  avatar_url: string | null;
+}
+
+export interface GitHubRepo {
+  full_name: string;
+  clone_url: string;
+  default_branch: string;
+  private: boolean;
 }
 
 // API methods
@@ -176,6 +191,14 @@ export const api = {
       request<PRExportResult>(`/api/sessions/${sessionId}/export-pr`, {
         method: 'POST',
         body: JSON.stringify({ branch_name: branchName }),
+      }),
+    user: () => request<GitHubUser>('/api/github/user'),
+    repos: (limit?: number) =>
+      request<GitHubRepo[]>(`/api/github/repos${limit ? `?limit=${limit}` : ''}`),
+    clone: (repoUrl: string, targetDir?: string) =>
+      request<{ path: string; message: string }>('/api/github/clone', {
+        method: 'POST',
+        body: JSON.stringify({ repo_url: repoUrl, target_dir: targetDir }),
       }),
   },
 };

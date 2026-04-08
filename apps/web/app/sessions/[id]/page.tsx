@@ -333,40 +333,56 @@ export default function SessionPage() {
                   <div className="flex items-center justify-between border-t border-border pt-6">
                     <div>
                       {patch.status === 'accepted' && (
-                        <div className="flex items-center gap-3">
-                          <span className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground">
-                            Accepted
-                          </span>
-                          {!prResult && (
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              onClick={handleExportPR}
-                              disabled={exporting}
-                            >
-                              <span className="font-mono text-xs uppercase tracking-wider">
-                                {exporting ? 'Exporting...' : 'Export as PR'}
-                              </span>
-                            </Button>
-                          )}
+                        <div className="flex flex-col gap-3">
+                          <div className="flex items-center gap-3">
+                            <span className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground">
+                              Changes Applied
+                            </span>
+                            {!prResult && (
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={handleExportPR}
+                                disabled={exporting}
+                              >
+                                <span className="font-mono text-xs uppercase tracking-wider">
+                                  {exporting ? 'Creating PR...' : 'Push & Create PR'}
+                                </span>
+                              </Button>
+                            )}
+                          </div>
                           {prResult && (
-                            <span className="font-mono text-xs text-muted-foreground">
-                              Branch: {prResult.branch}
-                              {prResult.pr_url && (
-                                <>
-                                  {' '}
-                                  &middot;{' '}
+                            <div className="border border-border p-4">
+                              <div className="flex items-center gap-6 font-mono text-xs">
+                                <div>
+                                  <span className="text-muted-foreground">Branch </span>
+                                  <span>{prResult.branch}</span>
+                                </div>
+                                {prResult.commit_sha && (
+                                  <div>
+                                    <span className="text-muted-foreground">Commit </span>
+                                    <span>{prResult.commit_sha}</span>
+                                  </div>
+                                )}
+                                <div>
+                                  <span className="text-muted-foreground">Files </span>
+                                  <span>{prResult.files_changed}</span>
+                                </div>
+                                {prResult.pr_url && (
                                   <a
                                     href={prResult.pr_url}
                                     target="_blank"
                                     rel="noopener noreferrer"
-                                    className="underline hover:text-foreground"
+                                    className="text-foreground underline underline-offset-4 hover:text-foreground/70"
                                   >
-                                    View PR
+                                    View PR on GitHub
                                   </a>
-                                </>
-                              )}
-                            </span>
+                                )}
+                              </div>
+                              <p className="mt-2 text-xs text-muted-foreground">
+                                {prResult.message}
+                              </p>
+                            </div>
                           )}
                         </div>
                       )}

@@ -39,7 +39,8 @@ app.include_router(plans.router, prefix="/api/sessions", tags=["plans"])
 app.include_router(patches.router, prefix="/api/sessions", tags=["patches"])
 app.include_router(validation.router, prefix="/api/sessions", tags=["validation"])
 app.include_router(tokens.router, tags=["tokens"])
-app.include_router(github.router, prefix="/api/sessions", tags=["github"])
+app.include_router(github.router, prefix="/api/sessions", tags=["github-pr"])
+app.include_router(github.router, prefix="/api", tags=["github"])
 
 
 @app.get("/api/health")
