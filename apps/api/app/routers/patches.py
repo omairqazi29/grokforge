@@ -51,8 +51,26 @@ async def generate_patch(
     session.status = "patching"
     await db.commit()
 
+    # Read actual file contents for affected files so Grok sees real code
+    import os
+    file_contents = {}
+    affected = existing_patch.plan.get("affected_files", [])
+    # Also gather files mentioned in plan steps
+    for step in existing_patch.plan.get("steps", []):
+        for f in step.get("affected_files", []):
+            if f not in affected:
+                affected.append(f)
+    for filepath in affected:
+        full_path = os.path.join(repo.path, filepath)
+        if os.path.isfile(full_path):
+            try:
+                with open(full_path, "r", errors="ignore") as f:
+                    file_contents[filepath] = f.read()
+            except OSError:
+                pass
+
     provider = get_ai_provider()
-    patch = await provider.propose_patch(existing_patch.plan, {}, feedback=body.feedback)
+    patch = await provider.propose_patch(existing_patch.plan, file_contents, feedback=body.feedback)
 
     existing_patch.changes = [
         {

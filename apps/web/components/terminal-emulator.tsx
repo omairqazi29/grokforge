@@ -180,21 +180,27 @@ export function TerminalEmulator({
               )}
             </div>
           </div>
-          <div
+          <pre
             ref={liveOutputRef}
-            className="max-h-[300px] overflow-y-auto p-4 font-mono text-xs leading-5"
+            className="max-h-[400px] overflow-y-auto p-4 font-mono text-xs leading-6 select-text"
           >
-            {liveRun.stdout.map((line, i) => (
-              <span key={`o${i}`} className="text-foreground/70">
-                {line}
-              </span>
-            ))}
+            {liveRun.stdout.map((line, i) => {
+              const isError = /error|failed|exception|Traceback/i.test(line);
+              return (
+                <div
+                  key={`o${i}`}
+                  className={isError ? 'bg-red-500/10 text-red-400' : 'text-foreground/70'}
+                >
+                  {line}
+                </div>
+              );
+            })}
             {liveRun.stderr.map((line, i) => (
-              <span key={`e${i}`} className="text-red-400/80">
+              <div key={`e${i}`} className="bg-red-500/10 text-red-400">
                 {line}
-              </span>
+              </div>
             ))}
-          </div>
+          </pre>
           {liveRun.analyzing && (
             <div className="border-t border-border px-4 py-3">
               <span className="flex items-center gap-2 font-mono text-[10px] uppercase tracking-widest text-muted-foreground">
