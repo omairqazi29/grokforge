@@ -70,6 +70,9 @@ export interface PatchArtifact {
   changes: PatchFileChange[];
   overall_rationale: string;
   status: string;
+  pr_branch: string;
+  pr_url: string;
+  pr_commit_sha: string;
   created_at: string;
 }
 

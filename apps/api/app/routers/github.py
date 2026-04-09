@@ -173,10 +173,14 @@ async def export_patch_as_pr(
             pass
 
         if not has_remote:
+            # Save to DB
+            patch.pr_branch = branch_name
+            patch.pr_commit_sha = commit_sha[:8] if commit_sha else ""
+            await db.commit()
             return PRCreateResponse(
                 branch=branch_name,
                 files_changed=files_changed,
-                message=f"Branch {branch_name} created with {files_changed} file(s). No remote configured — push manually or add a remote.",
+                message=f"Branch {branch_name} created with {files_changed} file(s). No remote — push manually.",
                 commit_sha=commit_sha[:8] if commit_sha else None,
             )
 
@@ -219,11 +223,17 @@ async def export_patch_as_pr(
             else:
                 logger.warning("Could not create PR: %s", error_msg)
 
+        # Save to DB
+        patch.pr_branch = branch_name
+        patch.pr_url = pr_url or ""
+        patch.pr_commit_sha = commit_sha[:8] if commit_sha else ""
+        await db.commit()
+
         return PRCreateResponse(
             branch=branch_name,
             files_changed=files_changed,
             message=f"Branch {branch_name} pushed with {files_changed} file(s)" + (
-                f" — PR created" if pr_url else " — push only (no remote or gh CLI)"
+                f" — PR created" if pr_url else ""
             ),
             pr_url=pr_url,
             commit_sha=commit_sha[:8] if commit_sha else None,

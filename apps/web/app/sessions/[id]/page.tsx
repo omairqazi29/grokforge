@@ -61,9 +61,17 @@ export default function SessionPage() {
         if (patches.length > 0) {
           const latest = patches[0];
           setPatch(latest);
-          // Reconstruct plan from patch artifact
-          if (latest.changes && latest.changes.length > 0) {
-            // If patch has plan data, build a plan object from it
+          // Load persisted PR data
+          if (latest.pr_branch) {
+            setPrResult({
+              branch: latest.pr_branch,
+              pr_url: latest.pr_url || null,
+              commit_sha: latest.pr_commit_sha || null,
+              files_changed: latest.changes?.length || 0,
+              message: latest.pr_url
+                ? `PR created on ${latest.pr_branch}`
+                : `Branch ${latest.pr_branch} created`,
+            });
           }
         }
 
