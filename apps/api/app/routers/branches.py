@@ -104,12 +104,17 @@ async def checkout_branch(
     if not repo:
         raise HTTPException(status_code=404, detail="Repository not found")
     try:
-        # Stash any dirty changes first
+        # Try clean checkout first
         try:
             await _git(repo.path, "stash", "--include-untracked")
         except RuntimeError as e:
             logger.debug("Nothing to stash: %s", e)
-        await _git(repo.path, "checkout", body.branch)
+        try:
+            await _git(repo.path, "checkout", body.branch)
+        except RuntimeError:
+            # If stash didn't help, force checkout (discard local changes)
+            logger.warning("Stash checkout failed, forcing checkout to %s", body.branch)
+            await _git(repo.path, "checkout", "--force", body.branch)
         # Try to pop stash back
         try:
             await _git(repo.path, "stash", "pop")
