@@ -30,7 +30,7 @@ export default function RootLayout({
     >
       <body className="min-h-full bg-background text-foreground selection:bg-white/20">
         <AppSidebar />
-        <main className="pl-56">{children}</main>
+        <main>{children}</main>
       </body>
     </html>
   );

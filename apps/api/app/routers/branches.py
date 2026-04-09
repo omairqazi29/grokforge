@@ -76,9 +76,17 @@ async def create_branch(
     if not repo:
         raise HTTPException(status_code=404, detail="Repository not found")
     try:
+        try:
+            await _git(repo.path, "stash", "--include-untracked")
+        except Exception:
+            pass
         if body.from_branch:
             await _git(repo.path, "checkout", body.from_branch)
         await _git(repo.path, "checkout", "-b", body.name)
+        try:
+            await _git(repo.path, "stash", "pop")
+        except Exception:
+            pass
         return BranchInfo(name=body.name, is_current=True)
     except Exception as e:
         raise HTTPException(status_code=400, detail=str(e))
@@ -92,7 +100,17 @@ async def checkout_branch(
     if not repo:
         raise HTTPException(status_code=404, detail="Repository not found")
     try:
+        # Stash any dirty changes first
+        try:
+            await _git(repo.path, "stash", "--include-untracked")
+        except Exception:
+            pass
         await _git(repo.path, "checkout", body.branch)
+        # Try to pop stash back
+        try:
+            await _git(repo.path, "stash", "pop")
+        except Exception:
+            pass
         return {"branch": body.branch, "message": f"Switched to {body.branch}"}
     except Exception as e:
         raise HTTPException(status_code=400, detail=str(e))
