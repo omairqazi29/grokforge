@@ -167,6 +167,7 @@ export const api = {
         method: 'POST',
         body: JSON.stringify({ path }),
       }),
+    delete: (id: number) => fetch(`${BASE_URL}/api/repos/${id}`, { method: 'DELETE' }),
   },
   branches: {
     list: (repoId: number) => request<BranchInfo[]>(`/api/repos/${repoId}/branches`),

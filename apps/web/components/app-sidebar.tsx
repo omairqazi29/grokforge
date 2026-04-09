@@ -221,20 +221,40 @@ export function AppSidebar() {
                   </button>
                 </div>
                 {repos.map((repo) => (
-                  <button
+                  <div
                     key={repo.id}
-                    onClick={() => {
-                      setActiveRepoId(repo.id);
-                      router.push(`/repos/${repo.id}`);
-                    }}
-                    className={`mb-0.5 block w-full truncate px-2 py-1.5 text-left font-mono text-[11px] transition-colors ${
+                    className={`group mb-0.5 flex items-center justify-between px-2 py-1.5 transition-colors ${
                       activeRepoId === repo.id
                         ? 'bg-accent text-foreground'
                         : 'text-muted-foreground hover:text-foreground'
                     }`}
                   >
-                    {repo.name}
-                  </button>
+                    <button
+                      onClick={() => {
+                        setActiveRepoId(repo.id);
+                        router.push(`/repos/${repo.id}`);
+                      }}
+                      className="min-w-0 flex-1 truncate text-left font-mono text-[11px]"
+                    >
+                      {repo.name}
+                    </button>
+                    <button
+                      onClick={async (e) => {
+                        e.stopPropagation();
+                        if (confirm(`Delete ${repo.name}?`)) {
+                          await api.repos.delete(repo.id);
+                          setRepos((prev) => prev.filter((r) => r.id !== repo.id));
+                          if (activeRepoId === repo.id) {
+                            setActiveRepoId(null);
+                            router.push('/');
+                          }
+                        }
+                      }}
+                      className="ml-1 shrink-0 font-mono text-[10px] text-transparent group-hover:text-foreground/20 hover:!text-red-400/70"
+                    >
+                      &times;
+                    </button>
+                  </div>
                 ))}
               </div>
 

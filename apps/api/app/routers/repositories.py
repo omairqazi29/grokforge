@@ -59,3 +59,12 @@ async def get_repository(repo_id: int, db: AsyncSession = Depends(get_db)):
     if not repo:
         raise HTTPException(status_code=404, detail="Repository not found")
     return repo
+
+
+@router.delete("/{repo_id}", status_code=204)
+async def delete_repository(repo_id: int, db: AsyncSession = Depends(get_db)):
+    repo = await db.get(Repository, repo_id)
+    if not repo:
+        raise HTTPException(status_code=404, detail="Repository not found")
+    await db.delete(repo)
+    await db.commit()

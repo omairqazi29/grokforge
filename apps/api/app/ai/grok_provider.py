@@ -103,8 +103,10 @@ class GrokProvider(AIProvider):
         total_tokens: int,
         session_id: int = None,
     ):
-        # Pricing for grok-4-1-fast: $0.20/1M input, $0.50/1M output
-        cost = (prompt_tokens * 0.20 + completion_tokens * 0.50) / 1_000_000
+        # Pricing: $0.20/1M input, $0.50/1M output (includes reasoning tokens)
+        # total_tokens from API includes reasoning; use it for a more accurate cost
+        output_tokens = max(completion_tokens, total_tokens - prompt_tokens)
+        cost = (prompt_tokens * 0.20 + output_tokens * 0.50) / 1_000_000
         try:
             from app.database import async_session
             from app.models.token_usage import TokenUsage

@@ -75,8 +75,16 @@ class GrokAPIClient:
         return parsed, usage
 
     def calculate_cost(self, usage: Dict) -> float:
-        """Calculate USD cost from a usage dict."""
+        """Calculate USD cost from a usage dict.
+
+        Note: xAI charges for prompt + completion + reasoning tokens.
+        Reasoning tokens (used internally by the model) are charged at the
+        completion rate. The total_tokens field from the API includes all three.
+        """
         prices = PRICING.get(self.model, PRICING["grok-4-1-fast"])
         prompt = usage.get("prompt_tokens", 0)
         completion = usage.get("completion_tokens", 0)
-        return (prompt * prices["input"] + completion * prices["output"]) / 1_000_000
+        # reasoning_tokens are internal model work, charged at completion rate
+        reasoning = usage.get("completion_tokens_details", {}).get("reasoning_tokens", 0) if isinstance(usage.get("completion_tokens_details"), dict) else 0
+        total_output = completion + reasoning
+        return (prompt * prices["input"] + total_output * prices["output"]) / 1_000_000
