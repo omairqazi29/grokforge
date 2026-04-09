@@ -84,7 +84,7 @@ export function NewSessionDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent>
+      <DialogContent className="sm:max-w-lg">
         <DialogHeader>
           <DialogTitle className="font-mono text-sm uppercase tracking-wider">
             New Session
@@ -117,7 +117,7 @@ export function NewSessionDialog({
           {dialogTab === 'task' && (
             <>
               {selectedIssue && (
-                <div className="flex items-center gap-2 border border-border px-3 py-2">
+                <div className="flex items-center gap-2 overflow-hidden border border-border px-3 py-2">
                   <span className="font-mono text-[10px] text-muted-foreground">
                     #{selectedIssue.number}
                   </span>
