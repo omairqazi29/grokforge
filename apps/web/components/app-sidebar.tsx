@@ -67,11 +67,27 @@ export function AppSidebar() {
       .catch(() => {});
   }, [activeRepoId, refreshSessions]);
 
-  // Refresh sessions periodically (picks up status changes)
+  // Refresh everything periodically
   useEffect(() => {
-    const interval = setInterval(refreshSessions, 5000);
+    const interval = setInterval(() => {
+      api.repos
+        .list()
+        .then(setRepos)
+        .catch(() => {});
+      refreshSessions();
+      if (activeRepoId) {
+        api.branches
+          .list(activeRepoId)
+          .then(setBranches)
+          .catch(() => {});
+        api.branches
+          .current(activeRepoId)
+          .then((r) => setCurrentBranch(r.branch))
+          .catch(() => {});
+      }
+    }, 3000);
     return () => clearInterval(interval);
-  }, [refreshSessions]);
+  }, [refreshSessions, activeRepoId]);
 
   // Derive repo from session
   useEffect(() => {

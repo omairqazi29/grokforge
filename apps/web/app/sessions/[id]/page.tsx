@@ -177,8 +177,18 @@ export default function SessionPage() {
     }
   };
 
+  const [confirmAccept, setConfirmAccept] = useState(false);
+
   const handlePatchAction = async (status: 'accepted' | 'rejected') => {
     if (!session || !patch) return;
+
+    // Warn if accepting with unreviewed comments
+    if (status === 'accepted' && reviewComments.length > 0 && !confirmAccept) {
+      setConfirmAccept(true);
+      return;
+    }
+    setConfirmAccept(false);
+
     try {
       const updated = await api.patches.update(session.id, patch.id, status);
       setPatch(updated);
@@ -466,6 +476,39 @@ export default function SessionPage() {
                       )}
                     </div>
                   </div>
+
+                  {/* Confirm accept dialog */}
+                  {confirmAccept && (
+                    <div className="border border-yellow-500/30 bg-yellow-500/5 p-4">
+                      <p className="mb-1 font-mono text-xs uppercase tracking-wider text-yellow-400/80">
+                        Unreviewed Comments
+                      </p>
+                      <p className="mb-3 text-xs text-foreground/60">
+                        You have {reviewComments.length} review comment
+                        {reviewComments.length > 1 ? 's' : ''} that
+                        {reviewComments.length > 1 ? ' have' : ' has'} not been addressed. Accept
+                        anyway?
+                      </p>
+                      <div className="flex gap-2">
+                        <Button
+                          size="sm"
+                          onClick={() => {
+                            setConfirmAccept(false);
+                            handlePatchAction('accepted');
+                          }}
+                        >
+                          <span className="font-mono text-[10px] uppercase tracking-wider">
+                            Accept Anyway
+                          </span>
+                        </Button>
+                        <Button size="sm" variant="outline" onClick={() => setConfirmAccept(false)}>
+                          <span className="font-mono text-[10px] uppercase tracking-wider">
+                            Go Back
+                          </span>
+                        </Button>
+                      </div>
+                    </div>
+                  )}
                 </div>
               )}
             </TabsContent>

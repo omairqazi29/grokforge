@@ -133,6 +133,16 @@ export interface CommitInfo {
   date: string;
 }
 
+// GitHub issue types
+export interface GitHubIssue {
+  number: number;
+  title: string;
+  body: string | null;
+  state: string;
+  labels: string[];
+  url: string;
+}
+
 // GitHub types
 export interface GitHubUser {
   login: string;
@@ -241,5 +251,9 @@ export const api = {
         method: 'POST',
         body: JSON.stringify({ repo_url: repoUrl, target_dir: targetDir }),
       }),
+    issues: (repo: string, state?: string) =>
+      request<GitHubIssue[]>(
+        `/api/github/issues?repo=${encodeURIComponent(repo)}${state ? `&state=${state}` : ''}`,
+      ),
   },
 };
