@@ -89,7 +89,7 @@ export function NewSessionDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-lg">
+      <DialogContent className="sm:max-w-xl">
         <DialogHeader>
           <DialogTitle className="font-mono text-sm uppercase tracking-wider">
             New Session
@@ -150,7 +150,7 @@ export function NewSessionDialog({
                 <p className="mb-1.5 font-mono text-[10px] uppercase tracking-widest text-muted-foreground">
                   Constraints (optional)
                 </p>
-                <div className="flex gap-2">
+                <div className="flex gap-2 overflow-hidden">
                   <input
                     placeholder="e.g. do not modify tests"
                     value={constraintInput}
