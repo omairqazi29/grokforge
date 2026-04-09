@@ -117,6 +117,19 @@ export interface PRExportResult {
   commit_sha: string | null;
 }
 
+// Branch types
+export interface BranchInfo {
+  name: string;
+  is_current: boolean;
+}
+
+export interface CommitInfo {
+  sha: string;
+  message: string;
+  author: string;
+  date: string;
+}
+
 // GitHub types
 export interface GitHubUser {
   login: string;
@@ -141,6 +154,28 @@ export const api = {
         method: 'POST',
         body: JSON.stringify({ path }),
       }),
+  },
+  branches: {
+    list: (repoId: number) => request<BranchInfo[]>(`/api/repos/${repoId}/branches`),
+    current: (repoId: number) =>
+      request<{ branch: string | null }>(`/api/repos/${repoId}/branch/current`),
+    create: (repoId: number, name: string, fromBranch?: string) =>
+      request<BranchInfo>(`/api/repos/${repoId}/branches`, {
+        method: 'POST',
+        body: JSON.stringify({ name, from_branch: fromBranch }),
+      }),
+    checkout: (repoId: number, branch: string) =>
+      request<{ branch: string; message: string }>(`/api/repos/${repoId}/branch/checkout`, {
+        method: 'POST',
+        body: JSON.stringify({ branch }),
+      }),
+    commits: (repoId: number, limit?: number, branch?: string) => {
+      const params = new URLSearchParams();
+      if (limit) params.set('limit', String(limit));
+      if (branch) params.set('branch', branch);
+      const qs = params.toString();
+      return request<CommitInfo[]>(`/api/repos/${repoId}/commits${qs ? `?${qs}` : ''}`);
+    },
   },
   sessions: {
     list: (repoId?: number) => {
