@@ -104,16 +104,33 @@ async def export_patch_as_pr(
 
     try:
         # Check if branch already exists
+        # Delete branch if it exists from a previous attempt
         try:
-            await _run_git(repo.path, "rev-parse", "--verify", branch_name)
-            # Branch exists — delete it first
             await _run_git(repo.path, "branch", "-D", branch_name)
         except Exception:
             pass
 
+        # First, restore original files on the main branch so we have a clean base
+        for change in changes:
+            fp = change.get("file_path", "")
+            original = change.get("original_content", "")
+            if fp and original:
+                full_path = os.path.join(repo.path, fp)
+                if os.path.exists(full_path):
+                    with open(full_path, "w") as f:
+                        f.write(original)
+
+        # Commit original state if dirty
+        try:
+            await _run_git(repo.path, "add", "-A")
+            await _run_git(repo.path, "commit", "-m", "restore pre-patch state")
+        except Exception:
+            pass  # nothing to commit is fine
+
+        # Create branch from clean state
         await _run_git(repo.path, "checkout", "-b", branch_name)
 
-        # Apply changes
+        # Apply patched content
         files_changed = 0
         for change in changes:
             fp = change.get("file_path", "")
@@ -136,8 +153,33 @@ async def export_patch_as_pr(
         await _run_git(repo.path, "commit", "-m", commit_msg)
         commit_sha = await _run_git(repo.path, "rev-parse", "HEAD")
 
-        # Push + create PR
+        # Switch back and re-apply patched files (since user accepted them)
+        await _run_git(repo.path, "checkout", original_branch)
+        for change in changes:
+            fp = change.get("file_path", "")
+            patched = change.get("patched_content", "")
+            if fp and patched:
+                full_path = os.path.join(repo.path, fp)
+                with open(full_path, "w") as f:
+                    f.write(patched)
+
+        # Push + create PR (best-effort — may not have a remote)
         pr_url = None
+        has_remote = False
+        try:
+            remotes = await _run_git(repo.path, "remote")
+            has_remote = bool(remotes.strip())
+        except Exception:
+            pass
+
+        if not has_remote:
+            return PRCreateResponse(
+                branch=branch_name,
+                files_changed=files_changed,
+                message=f"Branch {branch_name} created with {files_changed} file(s). No remote configured — push manually or add a remote.",
+                commit_sha=commit_sha[:8] if commit_sha else None,
+            )
+
         try:
             await _run_git(repo.path, "push", "-u", "origin", branch_name, "--force")
             logger.info("Pushed branch %s", branch_name)
@@ -176,8 +218,6 @@ async def export_patch_as_pr(
                     pass
             else:
                 logger.warning("Could not create PR: %s", error_msg)
-
-        await _run_git(repo.path, "checkout", original_branch)
 
         return PRCreateResponse(
             branch=branch_name,
@@ -261,5 +301,8 @@ async def _run_cmd(cwd: str, *args: str) -> str:
     )
     stdout, stderr = await asyncio.wait_for(proc.communicate(), timeout=60)
     if proc.returncode != 0:
-        raise RuntimeError(stderr.decode(errors="replace").strip())
+        err = stderr.decode(errors="replace").strip()
+        out = stdout.decode(errors="replace").strip()
+        msg = err or out or f"Command failed with exit code {proc.returncode}: {' '.join(args)}"
+        raise RuntimeError(msg)
     return stdout.decode(errors="replace").strip()
