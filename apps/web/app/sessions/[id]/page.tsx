@@ -176,7 +176,7 @@ function ReviewTab({
   onAccept: () => void;
   onReject: () => void;
   onRegenerate: () => void;
-  onExportPR: () => void;
+  onExportPR: (closesIssues?: number[]) => void;
   onSetConfirmAccept: (v: boolean) => void;
 }) {
   const isPending = patch.status === PATCH_STATUS.PENDING;
@@ -280,8 +280,11 @@ function PatchStatusInfo({
   prResult: PRExportResult | null;
   exporting: boolean;
   exportError: string;
-  onExportPR: () => void;
+  onExportPR: (closesIssues?: number[]) => void;
 }) {
+  const [issueInput, setIssueInput] = useState('');
+  const [issuesToClose, setIssuesToClose] = useState<number[]>([]);
+
   if (patch.status === PATCH_STATUS.ACCEPTED) {
     return (
       <div className="flex flex-col gap-3">
@@ -290,11 +293,38 @@ function PatchStatusInfo({
             Changes Applied
           </span>
           {!prResult && (
-            <Button variant="outline" size="sm" onClick={onExportPR} disabled={exporting}>
-              <span className="font-mono text-xs uppercase tracking-wider">
-                {exporting ? 'Creating PR...' : 'Push & Create PR'}
-              </span>
-            </Button>
+            <div className="flex items-center gap-2">
+              <div className="flex items-center gap-1">
+                <input
+                  placeholder="Close issues: 1, 4, 7"
+                  value={issueInput}
+                  onChange={(e) => {
+                    setIssueInput(e.target.value);
+                    const nums = e.target.value
+                      .split(/[,\s]+/)
+                      .map(Number)
+                      .filter((n) => n > 0);
+                    setIssuesToClose(nums);
+                  }}
+                  className="w-40 border border-border bg-transparent px-2 py-1 font-mono text-[10px] outline-none focus:border-foreground/20"
+                />
+                {issuesToClose.length > 0 && (
+                  <span className="font-mono text-[9px] text-muted-foreground">
+                    #{issuesToClose.join(', #')}
+                  </span>
+                )}
+              </div>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => onExportPR(issuesToClose.length > 0 ? issuesToClose : undefined)}
+                disabled={exporting}
+              >
+                <span className="font-mono text-xs uppercase tracking-wider">
+                  {exporting ? 'Creating PR...' : 'Push & Create PR'}
+                </span>
+              </Button>
+            </div>
           )}
         </div>
         {prResult && (

@@ -49,7 +49,7 @@ interface WorkflowActions {
   acceptPatch: () => Promise<void>;
   rejectPatch: () => Promise<void>;
   autoFix: () => Promise<void>;
-  exportPR: () => Promise<void>;
+  exportPR: (closesIssues?: number[]) => Promise<void>;
 }
 
 export function useSessionWorkflow(sessionId: number): WorkflowState & WorkflowActions {
@@ -211,19 +211,22 @@ export function useSessionWorkflow(sessionId: number): WorkflowState & WorkflowA
     }
   }, [session]);
 
-  const exportPR = useCallback(async () => {
-    if (!session) return;
-    setExporting(true);
-    setExportError('');
-    try {
-      const result = await api.github.exportPR(session.id);
-      setPrResult(result);
-    } catch (err) {
-      setExportError(err instanceof Error ? err.message : 'Export failed');
-    } finally {
-      setExporting(false);
-    }
-  }, [session]);
+  const exportPR = useCallback(
+    async (closesIssues?: number[]) => {
+      if (!session) return;
+      setExporting(true);
+      setExportError('');
+      try {
+        const result = await api.github.exportPR(session.id, undefined, closesIssues);
+        setPrResult(result);
+      } catch (err) {
+        setExportError(err instanceof Error ? err.message : 'Export failed');
+      } finally {
+        setExporting(false);
+      }
+    },
+    [session],
+  );
 
   return {
     session,

@@ -132,10 +132,10 @@ export const api = {
     },
   },
   github: {
-    exportPR: (sessionId: number, branchName?: string) =>
+    exportPR: (sessionId: number, branchName?: string, closesIssues?: number[]) =>
       request<PRExportResult>(`/api/sessions/${sessionId}/export-pr`, {
         method: 'POST',
-        body: JSON.stringify({ branch_name: branchName }),
+        body: JSON.stringify({ branch_name: branchName, closes_issues: closesIssues }),
       }),
     user: () => request<GitHubUser>('/api/github/user'),
     repos: (limit?: number) =>
