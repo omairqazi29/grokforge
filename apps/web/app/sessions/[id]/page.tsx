@@ -138,14 +138,16 @@ export default function SessionPage() {
   };
 
   // P2: GitHub PR export
+  const [exportError, setExportError] = useState('');
   const handleExportPR = async () => {
     if (!session) return;
     setExporting(true);
+    setExportError('');
     try {
       const result = await api.github.exportPR(session.id);
       setPrResult(result);
     } catch (err) {
-      console.error(err);
+      setExportError(err instanceof Error ? err.message : 'Export failed');
     } finally {
       setExporting(false);
     }
@@ -383,6 +385,9 @@ export default function SessionPage() {
                                 {prResult.message}
                               </p>
                             </div>
+                          )}
+                          {exportError && (
+                            <p className="mt-2 font-mono text-xs text-red-400">{exportError}</p>
                           )}
                         </div>
                       )}

@@ -1,17 +1,14 @@
-# WeatherAPI
+# MOOweather CLI
 
-A simple weather API service built with Python. Used as a demo project for GrokForge.
-
-## Setup
-
-```bash
-pip install -r requirements.txt
-python -m pytest
-```
+A simple MOOweather CLI tool to fetch current weather.
 
 ## Usage
 
 ```bash
-python src/main.py
-# GET http://localhost:5000/weather?city=london
+poetry run python -m src.main --city London
 ```
+
+## Features
+
+- Cache support
+- Multiple formatters

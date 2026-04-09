@@ -1,3 +1,4 @@
+from datetime import datetime
 from typing import List, Optional
 
 from fastapi import APIRouter, Depends
@@ -13,14 +14,14 @@ router = APIRouter()
 
 class TokenUsageResponse(BaseModel):
     id: int
-    session_id: Optional[int]
+    session_id: Optional[int] = None
     operation: str
     model: str
     prompt_tokens: int
     completion_tokens: int
     total_tokens: int
     cost_usd: float
-    created_at: str
+    created_at: datetime
 
     model_config = {"from_attributes": True}
 
@@ -35,10 +36,10 @@ class TokenSummary(BaseModel):
 
 @router.get("/api/tokens", response_model=List[TokenUsageResponse])
 async def list_token_usage(
-    session_id: int = None, limit: int = 50, db: AsyncSession = Depends(get_db)
+    session_id: Optional[int] = None, limit: int = 50, db: AsyncSession = Depends(get_db)
 ):
     query = select(TokenUsage).order_by(TokenUsage.created_at.desc()).limit(limit)
-    if session_id:
+    if session_id is not None:
         query = query.where(TokenUsage.session_id == session_id)
     result = await db.execute(query)
     return result.scalars().all()
@@ -46,7 +47,7 @@ async def list_token_usage(
 
 @router.get("/api/tokens/summary", response_model=TokenSummary)
 async def get_token_summary(
-    session_id: int = None, db: AsyncSession = Depends(get_db)
+    session_id: Optional[int] = None, db: AsyncSession = Depends(get_db)
 ):
     query = select(
         func.coalesce(func.sum(TokenUsage.prompt_tokens), 0).label("total_prompt_tokens"),
@@ -55,7 +56,7 @@ async def get_token_summary(
         func.coalesce(func.sum(TokenUsage.cost_usd), 0).label("total_cost_usd"),
         func.count(TokenUsage.id).label("request_count"),
     )
-    if session_id:
+    if session_id is not None:
         query = query.where(TokenUsage.session_id == session_id)
     result = await db.execute(query)
     row = result.one()

@@ -21,6 +21,33 @@ function DiffBlock({
   onAddComment?: (line: number) => void;
 }) {
   const lines = diff.split('\n');
+
+  // Parse @@ headers to compute real line numbers
+  let oldLine = 0;
+  let newLine = 0;
+  const lineNumbers: { old: string; new: string }[] = [];
+
+  for (const line of lines) {
+    const hunkMatch = line.match(/^@@ -(\d+)(?:,\d+)? \+(\d+)(?:,\d+)? @@/);
+    if (hunkMatch) {
+      oldLine = parseInt(hunkMatch[1], 10);
+      newLine = parseInt(hunkMatch[2], 10);
+      lineNumbers.push({ old: '...', new: '...' });
+    } else if (line.startsWith('---') || line.startsWith('+++')) {
+      lineNumbers.push({ old: '', new: '' });
+    } else if (line.startsWith('-')) {
+      lineNumbers.push({ old: String(oldLine), new: '' });
+      oldLine++;
+    } else if (line.startsWith('+')) {
+      lineNumbers.push({ old: '', new: String(newLine) });
+      newLine++;
+    } else {
+      lineNumbers.push({ old: String(oldLine), new: String(newLine) });
+      oldLine++;
+      newLine++;
+    }
+  }
+
   return (
     <div className="overflow-x-auto font-mono text-xs leading-6">
       {lines.map((line, i) => {
@@ -37,18 +64,24 @@ function DiffBlock({
           textColor = 'text-blue-400';
         }
 
+        const ln = lineNumbers[i] || { old: '', new: '' };
+        const displayLine = ln.new || ln.old || '';
+
         return (
           <div
             key={i}
             className={`group flex hover:bg-foreground/5 ${bg}`}
-            onClick={() => onAddComment?.(i + 1)}
+            onClick={() => displayLine && onAddComment?.(parseInt(displayLine, 10))}
           >
-            <span className="w-10 shrink-0 select-none border-r border-border px-2 text-right text-foreground/20">
-              {i + 1}
+            <span className="w-8 shrink-0 select-none border-r border-border px-1 text-right text-foreground/15">
+              {ln.old}
+            </span>
+            <span className="w-8 shrink-0 select-none border-r border-border px-1 text-right text-foreground/15">
+              {ln.new}
             </span>
             <span className={`flex-1 px-3 ${textColor}`}>{line || ' '}</span>
-            {onAddComment && (
-              <span className="shrink-0 px-2 text-foreground/0 group-hover:text-foreground/30 cursor-pointer">
+            {onAddComment && displayLine && (
+              <span className="shrink-0 cursor-pointer px-2 text-foreground/0 group-hover:text-foreground/30">
                 +
               </span>
             )}
