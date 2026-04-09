@@ -1,20 +1,25 @@
-import json
-import os
+import time
 from typing import Optional
 
-_CACHE_DIR = ".mooweather_cache"
 
+class WeatherCache:
+    """Simple in-memory cache with TTL. No max size limit — can grow unbounded."""
 
-def get_cache(city: str) -> Optional[dict]:
-    path = os.path.join(_CACHE_DIR, f"{city}.json")
-    if os.path.exists(path):
-        with open(path) as f:
-            return json.load(f)
-    return None
+    def __init__(self, ttl_seconds: int = 300):
+        self.ttl = ttl_seconds
+        self._store: dict = {}
 
+    def get(self, key: str) -> Optional[dict]:
+        entry = self._store.get(key)
+        if entry is None:
+            return None
+        if time.time() - entry["timestamp"] > self.ttl:
+            del self._store[key]
+            return None
+        return entry["data"]
 
-def set_cache(city: str, data: dict):
-    os.makedirs(_CACHE_DIR, exist_ok=True)
-    path = os.path.join(_CACHE_DIR, f"{city}.json")
-    with open(path, "w") as f:
-        json.dump(data, f)
+    def set(self, key: str, data: dict) -> None:
+        self._store[key] = {"data": data, "timestamp": time.time()}
+
+    def clear(self) -> None:
+        self._store.clear()

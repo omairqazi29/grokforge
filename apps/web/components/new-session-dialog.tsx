@@ -23,6 +23,8 @@ export function NewSessionDialog({
 }: NewSessionDialogProps) {
   const [dialogTab, setDialogTab] = useState<'task' | 'issue'>('task');
   const [taskDesc, setTaskDesc] = useState(initialTask);
+  const [constraintInput, setConstraintInput] = useState('');
+  const [constraints, setConstraints] = useState<string[]>([]);
   const [creating, setCreating] = useState(false);
   const [issues, setIssues] = useState<GitHubIssue[]>([]);
   const [issuesLoading, setIssuesLoading] = useState(false);
@@ -45,9 +47,12 @@ export function NewSessionDialog({
         repository_id: repo.id,
         title: autoTitle,
         task_description: task,
+        constraints: constraints.length > 0 ? constraints : undefined,
       });
       onOpenChange(false);
       setTaskDesc('');
+      setConstraints([]);
+      setConstraintInput('');
       setSelectedIssue(null);
       onCreated(session.id);
     } catch (err) {
@@ -140,6 +145,61 @@ export function NewSessionDialog({
                 rows={4}
                 className="font-mono text-sm"
               />
+              {/* Constraints */}
+              <div>
+                <p className="mb-1.5 font-mono text-[10px] uppercase tracking-widest text-muted-foreground">
+                  Constraints (optional)
+                </p>
+                <div className="flex gap-2">
+                  <input
+                    placeholder="e.g. do not modify tests"
+                    value={constraintInput}
+                    onChange={(e) => setConstraintInput(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') {
+                        e.preventDefault();
+                        const v = constraintInput.trim();
+                        if (v && !constraints.includes(v)) {
+                          setConstraints([...constraints, v]);
+                          setConstraintInput('');
+                        }
+                      }
+                    }}
+                    className="flex-1 border border-border bg-transparent px-3 py-1.5 font-mono text-xs outline-none focus:border-foreground/20"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const v = constraintInput.trim();
+                      if (v && !constraints.includes(v)) {
+                        setConstraints([...constraints, v]);
+                        setConstraintInput('');
+                      }
+                    }}
+                    className="border border-border px-3 py-1.5 font-mono text-[10px] uppercase tracking-wider text-muted-foreground hover:text-foreground"
+                  >
+                    Add
+                  </button>
+                </div>
+                {constraints.length > 0 && (
+                  <div className="mt-2 flex flex-wrap gap-1.5">
+                    {constraints.map((c) => (
+                      <span
+                        key={c}
+                        className="flex items-center gap-1 border border-border px-2 py-0.5 font-mono text-[10px]"
+                      >
+                        {c}
+                        <button
+                          onClick={() => setConstraints(constraints.filter((x) => x !== c))}
+                          className="text-muted-foreground hover:text-foreground"
+                        >
+                          &times;
+                        </button>
+                      </span>
+                    ))}
+                  </div>
+                )}
+              </div>
               <Button
                 onClick={handleCreateSession}
                 disabled={creating || !taskDesc.trim()}
