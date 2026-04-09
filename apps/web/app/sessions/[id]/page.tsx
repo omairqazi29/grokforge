@@ -49,15 +49,60 @@ export default function SessionPage() {
         : ('idle' as const);
 
   useEffect(() => {
-    api.sessions
-      .get(sessionId)
-      .then(async (s) => {
+    async function loadSession() {
+      try {
+        const s = await api.sessions.get(sessionId);
         setSession(s);
         const r = await api.repos.get(s.repository_id);
         setRepo(r);
-      })
-      .catch(console.error)
-      .finally(() => setLoading(false));
+
+        // Load existing patches
+        const patches = await api.patches.list(sessionId);
+        if (patches.length > 0) {
+          const latest = patches[0];
+          setPatch(latest);
+          // Reconstruct plan from patch artifact
+          if (latest.changes && latest.changes.length > 0) {
+            // If patch has plan data, build a plan object from it
+          }
+        }
+
+        // Load existing validation runs
+        const runs = await api.validation.list(sessionId);
+        if (runs.length > 0) {
+          setValidationRuns(runs);
+        }
+
+        // Set initial tab based on session status
+        if (s.status === 'completed' || s.status === 'reviewing') {
+          if (patches.length > 0 && patches[0].changes?.length > 0) {
+            setActiveTab('review');
+          }
+        } else if (s.status === 'planned') {
+          setActiveTab('plan');
+        }
+
+        // If we have a patch, also set plan as available
+        if (patches.length > 0 && patches[0].plan) {
+          const p = patches[0].plan;
+          setPlan({
+            id: patches[0].id,
+            session_id: sessionId,
+            goal: (p as any).goal || s.task_description,
+            steps: (p as any).steps || [],
+            affected_files: (p as any).affected_files || [],
+            risks: (p as any).risks || [],
+            validation_checklist: (p as any).validation_checklist || [],
+            created_at: patches[0].created_at,
+          });
+        }
+      } catch (err) {
+        console.error(err);
+      } finally {
+        setLoading(false);
+      }
+    }
+    loadSession();
   }, [sessionId]);
 
   const handleGeneratePlan = async (task: string, constraints: string[]) => {

@@ -14,6 +14,17 @@ from app.ai import get_ai_provider
 router = APIRouter()
 
 
+@router.get("/{session_id}/patches", response_model=list)
+async def list_patches(session_id: int, db: AsyncSession = Depends(get_db)):
+    result = await db.execute(
+        select(PatchArtifact)
+        .where(PatchArtifact.session_id == session_id)
+        .order_by(PatchArtifact.created_at.desc())
+    )
+    patches = result.scalars().all()
+    return [PatchResponse.model_validate(p) for p in patches]
+
+
 @router.post("/{session_id}/patch", response_model=PatchResponse, status_code=201)
 async def generate_patch(session_id: int, db: AsyncSession = Depends(get_db)):
     session = await db.get(Session, session_id)

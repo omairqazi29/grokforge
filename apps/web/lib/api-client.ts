@@ -66,6 +66,7 @@ export interface PatchFileChange {
 export interface PatchArtifact {
   id: number;
   session_id: number;
+  plan: Record<string, unknown> | null;
   changes: PatchFileChange[];
   overall_rationale: string;
   status: string;
@@ -161,6 +162,7 @@ export const api = {
       request<Plan>(`/api/sessions/${sessionId}/plan`, { method: 'POST' }),
   },
   patches: {
+    list: (sessionId: number) => request<PatchArtifact[]>(`/api/sessions/${sessionId}/patches`),
     generate: (sessionId: number) =>
       request<PatchArtifact>(`/api/sessions/${sessionId}/patch`, { method: 'POST' }),
     update: (sessionId: number, patchId: number, status: string) =>
@@ -170,6 +172,7 @@ export const api = {
       }),
   },
   validation: {
+    list: (sessionId: number) => request<ValidationRun[]>(`/api/sessions/${sessionId}/validations`),
     run: (sessionId: number, data: { command: string; patch_artifact_id: number }) =>
       request<ValidationRun>(`/api/sessions/${sessionId}/validate`, {
         method: 'POST',

@@ -1,4 +1,7 @@
+from typing import List
+
 from fastapi import APIRouter, Depends, HTTPException
+from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.database import get_db
@@ -10,6 +13,16 @@ from app.services.validation_runner import ValidationRunner
 from app.ai import get_ai_provider
 
 router = APIRouter()
+
+
+@router.get("/{session_id}/validations", response_model=List[ValidationRunResponse])
+async def list_validations(session_id: int, db: AsyncSession = Depends(get_db)):
+    result = await db.execute(
+        select(ValidationRun)
+        .where(ValidationRun.session_id == session_id)
+        .order_by(ValidationRun.created_at.desc())
+    )
+    return result.scalars().all()
 
 
 @router.post(
