@@ -22,9 +22,11 @@ interface TerminalEmulatorProps {
   onFallbackRun: (command: string) => void;
   liveRun: LiveRun | null;
   setLiveRun: React.Dispatch<React.SetStateAction<LiveRun | null>>;
+  onFixThis?: (text: string) => void;
 }
 
 export function TerminalEmulator({
+  onFixThis,
   sessionId,
   patchId,
   onFallbackRun,
@@ -210,13 +212,36 @@ export function TerminalEmulator({
             </div>
           )}
           {liveRun.analysis && (
-            <div className="border-t border-border p-4 select-text">
+            <div className="border-t border-border p-4">
               <p className="mb-2 font-mono text-[10px] uppercase tracking-widest text-muted-foreground">
                 Grok Analysis
               </p>
-              <pre className="whitespace-pre-wrap text-xs leading-relaxed text-foreground/70">
-                {liveRun.analysis}
-              </pre>
+              <p className="text-xs leading-relaxed text-foreground/70">{liveRun.analysis}</p>
+            </div>
+          )}
+          {liveRun.exitCode !== null && liveRun.exitCode !== 0 && onFixThis && (
+            <div className="border-t border-border p-3">
+              <button
+                onClick={() => {
+                  const output = [
+                    liveRun.stdout.length
+                      ? `stdout:\n${liveRun.stdout.join('').slice(0, 2000)}`
+                      : '',
+                    liveRun.stderr.length
+                      ? `stderr:\n${liveRun.stderr.join('').slice(0, 2000)}`
+                      : '',
+                    liveRun.analysis ? `analysis: ${liveRun.analysis}` : '',
+                  ]
+                    .filter(Boolean)
+                    .join('\n\n');
+                  onFixThis(
+                    `Command: ${liveRun.command}\nExit code: ${liveRun.exitCode}\n\n${output}`,
+                  );
+                }}
+                className="w-full border border-border py-2 font-mono text-[10px] uppercase tracking-wider text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
+              >
+                Fix This &mdash; Create New Session
+              </button>
             </div>
           )}
         </div>

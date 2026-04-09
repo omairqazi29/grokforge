@@ -105,6 +105,7 @@ export function ValidationPanel({
         onFallbackRun={onRunValidation}
         liveRun={liveRun}
         setLiveRun={setLiveRun}
+        onFixThis={repoId ? handleFixThis : undefined}
       />
 
       {/* Previous runs */}
@@ -145,17 +146,32 @@ export function ValidationPanel({
             </div>
           )}
           {run.analysis && (
-            <div>
-              <div className="px-4 pt-4 pb-1">
-                <p className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground">
-                  Grok Analysis
-                </p>
-              </div>
-              <TerminalOutput
-                content={run.analysis}
-                variant="stdout"
-                onCreateSession={repoId ? handleFixThis : undefined}
-              />
+            <div className="p-4">
+              <p className="mb-2 font-mono text-[10px] uppercase tracking-widest text-muted-foreground">
+                Grok Analysis
+              </p>
+              <p className="text-xs leading-relaxed text-foreground/70">{run.analysis}</p>
+            </div>
+          )}
+          {run.exit_code !== 0 && repoId && (
+            <div className="border-t border-border p-3">
+              <button
+                onClick={() => {
+                  const output = [
+                    run.stdout ? `stdout:\n${run.stdout.slice(0, 2000)}` : '',
+                    run.stderr ? `stderr:\n${run.stderr.slice(0, 2000)}` : '',
+                    run.analysis ? `analysis: ${run.analysis}` : '',
+                  ]
+                    .filter(Boolean)
+                    .join('\n\n');
+                  handleFixThis(
+                    `Command: ${run.command}\nExit code: ${run.exit_code}\n\n${output}`,
+                  );
+                }}
+                className="w-full border border-border py-2 font-mono text-[10px] uppercase tracking-wider text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
+              >
+                Fix This &mdash; Create New Session
+              </button>
             </div>
           )}
         </div>
