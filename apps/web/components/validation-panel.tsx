@@ -7,6 +7,7 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { api, type ValidationRun } from '@/lib/api-client';
+import ReactMarkdown from 'react-markdown';
 
 const BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
 
@@ -420,15 +421,59 @@ export function ValidationPanel({
           )}
           {chatMessages.map((msg, i) => (
             <div key={i} className={`mb-3 ${msg.role === 'user' ? 'text-right' : ''}`}>
-              <span
-                className={`inline-block max-w-[85%] px-3 py-2 text-xs leading-relaxed ${
-                  msg.role === 'user'
-                    ? 'bg-foreground/5 text-foreground'
-                    : 'border border-border text-foreground/70'
-                }`}
-              >
-                {msg.content}
-              </span>
+              {msg.role === 'user' ? (
+                <span className="inline-block max-w-[85%] bg-foreground/5 px-3 py-2 text-xs leading-relaxed text-foreground">
+                  {msg.content}
+                </span>
+              ) : (
+                <div className="inline-block max-w-[85%] border border-border px-4 py-3 text-left text-xs leading-relaxed text-foreground/70">
+                  <ReactMarkdown
+                    components={{
+                      h3: ({ children }) => (
+                        <p className="mb-2 mt-3 font-mono text-[10px] font-medium uppercase tracking-wider text-foreground/50 first:mt-0">
+                          {children}
+                        </p>
+                      ),
+                      p: ({ children }) => <p className="mb-2 last:mb-0">{children}</p>,
+                      code: ({ children, className }) => {
+                        const isBlock = className?.includes('language-');
+                        return isBlock ? (
+                          <pre className="my-2 overflow-x-auto border border-border bg-foreground/[0.03] p-3 font-mono text-[11px] leading-5">
+                            <code>{children}</code>
+                          </pre>
+                        ) : (
+                          <code className="border border-border bg-foreground/5 px-1 py-0.5 font-mono text-[11px]">
+                            {children}
+                          </code>
+                        );
+                      },
+                      pre: ({ children }) => <>{children}</>,
+                      ul: ({ children }) => (
+                        <ul className="mb-2 ml-4 list-disc space-y-1">{children}</ul>
+                      ),
+                      ol: ({ children }) => (
+                        <ol className="mb-2 ml-4 list-decimal space-y-1">{children}</ol>
+                      ),
+                      li: ({ children }) => <li>{children}</li>,
+                      strong: ({ children }) => (
+                        <strong className="text-foreground">{children}</strong>
+                      ),
+                      a: ({ children, href }) => (
+                        <a
+                          href={href}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="underline underline-offset-2 hover:text-foreground"
+                        >
+                          {children}
+                        </a>
+                      ),
+                    }}
+                  >
+                    {msg.content}
+                  </ReactMarkdown>
+                </div>
+              )}
             </div>
           ))}
           {chatLoading && (
