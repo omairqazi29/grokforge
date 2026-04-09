@@ -1,6 +1,6 @@
 from abc import ABC, abstractmethod
 from dataclasses import dataclass, field
-from typing import Dict, List
+from typing import Dict, List, Optional
 
 
 @dataclass
@@ -73,7 +73,8 @@ class AIProvider(ABC):
 
     @abstractmethod
     async def propose_patch(
-        self, plan: dict, file_contents: Dict[str, str]
+        self, plan: dict, file_contents: Dict[str, str],
+        feedback: Optional[List[str]] = None,
     ) -> GeneratedPatch:
         ...
 

@@ -44,7 +44,7 @@ interface WorkflowState {
 
 interface WorkflowActions {
   generatePlan: (task: string, constraints: string[]) => Promise<void>;
-  generatePatch: () => Promise<void>;
+  generatePatch: (feedback?: string[]) => Promise<void>;
   runValidation: (command: string) => Promise<void>;
   acceptPatch: () => Promise<void>;
   rejectPatch: () => Promise<void>;
@@ -141,19 +141,22 @@ export function useSessionWorkflow(sessionId: number): WorkflowState & WorkflowA
     [session],
   );
 
-  const generatePatch = useCallback(async () => {
-    if (!session) return;
-    setPatchLoading(true);
-    try {
-      const generated = await api.patches.generate(session.id);
-      setPatch(generated);
-      setSession((prev) => (prev ? { ...prev, status: 'reviewing' } : null));
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Patch generation failed');
-    } finally {
-      setPatchLoading(false);
-    }
-  }, [session]);
+  const generatePatch = useCallback(
+    async (feedback?: string[]) => {
+      if (!session) return;
+      setPatchLoading(true);
+      try {
+        const generated = await api.patches.generate(session.id, feedback);
+        setPatch(generated);
+        setSession((prev) => (prev ? { ...prev, status: 'reviewing' } : null));
+      } catch (err) {
+        setError(err instanceof Error ? err.message : 'Patch generation failed');
+      } finally {
+        setPatchLoading(false);
+      }
+    },
+    [session],
+  );
 
   const runValidation = useCallback(
     async (command: string) => {

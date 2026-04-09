@@ -437,7 +437,15 @@ export default function SessionPage() {
     setActiveTab('plan');
   };
   const handleGeneratePatch = async () => {
-    await wf.generatePatch();
+    const feedback =
+      reviewComments.length > 0
+        ? reviewComments.map((rc) => {
+            const prefix = rc.filePath ? `[${rc.filePath}] ` : '';
+            const code = rc.selectedCode ? ` (re: "${rc.selectedCode.slice(0, 100)}")` : '';
+            return `${prefix}${rc.comment}${code}`;
+          })
+        : undefined;
+    await wf.generatePatch(feedback);
     setActiveTab('review');
   };
   const handleAutoFix = async () => {

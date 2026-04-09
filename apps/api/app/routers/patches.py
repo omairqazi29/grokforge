@@ -9,6 +9,7 @@ from app.models.session import Session
 from app.models.repository import Repository
 from app.models.patch_artifact import PatchArtifact
 from app.schemas import PatchResponse, PatchUpdate
+from app.schemas.patch import PatchGenerate
 from app.ai import get_ai_provider
 
 router = APIRouter()
@@ -26,7 +27,9 @@ async def list_patches(session_id: int, db: AsyncSession = Depends(get_db)):
 
 
 @router.post("/{session_id}/patch", response_model=PatchResponse, status_code=201)
-async def generate_patch(session_id: int, db: AsyncSession = Depends(get_db)):
+async def generate_patch(
+    session_id: int, body: PatchGenerate = PatchGenerate(), db: AsyncSession = Depends(get_db)
+):
     session = await db.get(Session, session_id)
     if not session:
         raise HTTPException(status_code=404, detail="Session not found")
@@ -49,7 +52,7 @@ async def generate_patch(session_id: int, db: AsyncSession = Depends(get_db)):
     await db.commit()
 
     provider = get_ai_provider()
-    patch = await provider.propose_patch(existing_patch.plan, {})
+    patch = await provider.propose_patch(existing_patch.plan, {}, feedback=body.feedback)
 
     existing_patch.changes = [
         {

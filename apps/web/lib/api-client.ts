@@ -102,8 +102,11 @@ export const api = {
   },
   patches: {
     list: (sessionId: number) => request<PatchArtifact[]>(`/api/sessions/${sessionId}/patches`),
-    generate: (sessionId: number) =>
-      request<PatchArtifact>(`/api/sessions/${sessionId}/patch`, { method: 'POST' }),
+    generate: (sessionId: number, feedback?: string[]) =>
+      request<PatchArtifact>(`/api/sessions/${sessionId}/patch`, {
+        method: 'POST',
+        body: JSON.stringify({ feedback: feedback?.length ? feedback : null }),
+      }),
     update: (sessionId: number, patchId: number, status: string) =>
       request<PatchArtifact>(`/api/sessions/${sessionId}/patches/${patchId}`, {
         method: 'PATCH',

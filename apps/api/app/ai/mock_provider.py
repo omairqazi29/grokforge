@@ -1,4 +1,4 @@
-from typing import Dict, List
+from typing import Dict, List, Optional
 
 from app.ai.provider import (
     AIProvider,
@@ -76,7 +76,8 @@ class MockProvider(AIProvider):
         )
 
     async def propose_patch(
-        self, plan: dict, file_contents: Dict[str, str]
+        self, plan: dict, file_contents: Dict[str, str],
+        feedback: Optional[List[str]] = None,
     ) -> GeneratedPatch:
         affected = plan.get("affected_files", ["src/main.py"])
         changes = []

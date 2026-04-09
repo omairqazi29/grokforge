@@ -114,11 +114,16 @@ class GrokProvider(AIProvider):
 
     async def propose_patch(
         self, plan: dict, file_contents: Dict[str, str],
+        feedback: Optional[List[str]] = None,
     ) -> GeneratedPatch:
         plan_text = json.dumps(plan, indent=2)
         files_text = "".join(
             f"\n--- {p} ---\n{c}\n" for p, c in list(file_contents.items())[:10]
         )
+        feedback_text = ""
+        if feedback:
+            feedback_text = "\n\nREVIEW FEEDBACK (address these in your changes):\n"
+            feedback_text += "\n".join(f"- {f}" for f in feedback)
         result = await self._invoke(
             "propose_patch",
             [
@@ -126,8 +131,9 @@ class GrokProvider(AIProvider):
                     "You are a senior software engineer. Generate code changes "
                     "following the plan. For each file, provide the complete original "
                     "and patched content, a unified diff, and a rationale."
+                    " If review feedback is provided, address each point in your changes."
                 )},
-                {"role": "user", "content": f"Plan:\n{plan_text}\n\nCurrent files:{files_text}\n\nGenerate patches."},
+                {"role": "user", "content": f"Plan:\n{plan_text}\n\nCurrent files:{files_text}{feedback_text}\n\nGenerate patches."},
             ],
             response_schema=PATCH_SCHEMA,
             max_tokens=8192,
