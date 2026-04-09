@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { FileTree } from '@/components/file-tree';
-import { api, Repository, Session, CommitInfo } from '@/lib/api-client';
+import { api, Repository, Session, CommitInfo, GitHubIssue } from '@/lib/api-client';
 
 export default function RepoPage() {
   const params = useParams();
@@ -19,8 +19,12 @@ export default function RepoPage() {
   const [commits, setCommits] = useState<CommitInfo[]>([]);
   const [loading, setLoading] = useState(true);
   const [dialogOpen, setDialogOpen] = useState(false);
+  const [dialogTab, setDialogTab] = useState<'task' | 'issue'>('task');
   const [taskDesc, setTaskDesc] = useState('');
   const [creating, setCreating] = useState(false);
+  const [issues, setIssues] = useState<GitHubIssue[]>([]);
+  const [issuesLoading, setIssuesLoading] = useState(false);
+  const [selectedIssue, setSelectedIssue] = useState<GitHubIssue | null>(null);
 
   useEffect(() => {
     const autoCreate = searchParams.get('autoCreate');
@@ -59,12 +63,42 @@ export default function RepoPage() {
       });
       setDialogOpen(false);
       setTaskDesc('');
+      setSelectedIssue(null);
       router.push(`/sessions/${session.id}`);
     } catch (err) {
       console.error(err);
     } finally {
       setCreating(false);
     }
+  };
+
+  const handleLoadIssues = async () => {
+    if (!repo) return;
+    setIssuesLoading(true);
+    try {
+      // Try to get GitHub remote name from repo path
+      const repoName = repo.name;
+      // Try common patterns: check if gh can list issues
+      const ghRepos = await api.github.repos(100);
+      const match = ghRepos.find(
+        (r) => r.full_name.endsWith('/' + repoName) || r.full_name.includes(repoName),
+      );
+      if (match) {
+        const issueList = await api.github.issues(match.full_name);
+        setIssues(issueList);
+      }
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setIssuesLoading(false);
+    }
+  };
+
+  const handleSelectIssue = (issue: GitHubIssue) => {
+    setSelectedIssue(issue);
+    const body = issue.body ? `\n\n${issue.body}` : '';
+    setTaskDesc(`Fix #${issue.number}: ${issue.title}${body}`);
+    setDialogTab('task');
   };
 
   if (loading) {
@@ -218,18 +252,111 @@ export default function RepoPage() {
             </DialogTitle>
           </DialogHeader>
           <div className="space-y-4 pt-4">
-            <Textarea
-              placeholder="Describe what you want to change..."
-              value={taskDesc}
-              onChange={(e) => setTaskDesc(e.target.value)}
-              rows={4}
-              className="font-mono text-sm"
-            />
-            <Button onClick={handleCreateSession} disabled={creating} className="w-full">
-              <span className="font-mono text-xs uppercase tracking-wider">
-                {creating ? 'Creating...' : 'Create'}
-              </span>
-            </Button>
+            {/* Tab switcher */}
+            <div className="flex gap-px border border-border bg-border">
+              <button
+                onClick={() => setDialogTab('task')}
+                className={`flex-1 bg-background py-2 font-mono text-[10px] uppercase tracking-wider ${
+                  dialogTab === 'task' ? 'text-foreground' : 'text-muted-foreground'
+                }`}
+              >
+                Describe Task
+              </button>
+              <button
+                onClick={() => {
+                  setDialogTab('issue');
+                  if (issues.length === 0) handleLoadIssues();
+                }}
+                className={`flex-1 bg-background py-2 font-mono text-[10px] uppercase tracking-wider ${
+                  dialogTab === 'issue' ? 'text-foreground' : 'text-muted-foreground'
+                }`}
+              >
+                From Issue
+              </button>
+            </div>
+
+            {dialogTab === 'task' && (
+              <>
+                {selectedIssue && (
+                  <div className="flex items-center gap-2 border border-border px-3 py-2">
+                    <span className="font-mono text-[10px] text-muted-foreground">
+                      #{selectedIssue.number}
+                    </span>
+                    <span className="truncate font-mono text-xs">{selectedIssue.title}</span>
+                    <button
+                      onClick={() => {
+                        setSelectedIssue(null);
+                        setTaskDesc('');
+                      }}
+                      className="ml-auto shrink-0 font-mono text-[10px] text-muted-foreground hover:text-foreground"
+                    >
+                      &times;
+                    </button>
+                  </div>
+                )}
+                <Textarea
+                  placeholder="Describe what you want to change..."
+                  value={taskDesc}
+                  onChange={(e) => setTaskDesc(e.target.value)}
+                  rows={4}
+                  className="font-mono text-sm"
+                />
+                <Button
+                  onClick={handleCreateSession}
+                  disabled={creating || !taskDesc.trim()}
+                  className="w-full"
+                >
+                  <span className="font-mono text-xs uppercase tracking-wider">
+                    {creating ? 'Creating...' : 'Create Session'}
+                  </span>
+                </Button>
+              </>
+            )}
+
+            {dialogTab === 'issue' && (
+              <div>
+                {issuesLoading ? (
+                  <div className="flex justify-center py-8">
+                    <div className="h-4 w-4 animate-spin border border-foreground border-t-transparent" />
+                  </div>
+                ) : issues.length === 0 ? (
+                  <div className="py-8 text-center">
+                    <p className="text-xs text-muted-foreground">
+                      No open issues found. Make sure this repo is on GitHub.
+                    </p>
+                  </div>
+                ) : (
+                  <div className="max-h-[300px] divide-y divide-border overflow-y-auto border border-border">
+                    {issues.map((issue) => (
+                      <button
+                        key={issue.number}
+                        onClick={() => handleSelectIssue(issue)}
+                        className="flex w-full items-start gap-3 p-3 text-left transition-colors hover:bg-accent"
+                      >
+                        <span className="shrink-0 font-mono text-[10px] text-muted-foreground">
+                          #{issue.number}
+                        </span>
+                        <div className="min-w-0 flex-1">
+                          <p className="font-mono text-xs">{issue.title}</p>
+                          {issue.labels.length > 0 && (
+                            <div className="mt-1 flex gap-1">
+                              {issue.labels.map((l) => (
+                                <span
+                                  key={l}
+                                  className="border border-border px-1.5 py-0.5 font-mono text-[9px] text-muted-foreground"
+                                >
+                                  {l}
+                                </span>
+                              ))}
+                            </div>
+                          )}
+                        </div>
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
           </div>
         </DialogContent>
       </Dialog>
