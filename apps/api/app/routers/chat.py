@@ -9,13 +9,13 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.database import get_db
 from app.models.session import Session
 from app.models.repository import Repository
-from app.ai import get_ai_provider
+from app.config import settings
 
 router = APIRouter()
 
 
 class ChatMessage(BaseModel):
-    role: str  # "user" or "assistant"
+    role: str
     content: str
 
 
@@ -31,7 +31,6 @@ class ChatResponse(BaseModel):
 
 @router.post("/api/chat", response_model=ChatResponse)
 async def chat(body: ChatRequest, db: AsyncSession = Depends(get_db)):
-    # Build context
     system_parts = [
         "You are a helpful coding assistant inside GrokForge, a repo-aware coding workspace. "
         "Answer questions about code, debugging, running commands, and software engineering. "
@@ -51,14 +50,21 @@ async def chat(body: ChatRequest, db: AsyncSession = Depends(get_db)):
             system_parts.append(f"\nActive session: {session.title}")
             system_parts.append(f"Task: {session.task_description}")
 
-    provider = get_ai_provider()
     messages = [{"role": "system", "content": "\n".join(system_parts)}]
     for msg in body.messages:
         messages.append({"role": msg.role, "content": msg.content})
 
-    result = await provider._call(
-        operation="chat",
-        messages=messages,
-        max_tokens=1024,
-    )
-    return ChatResponse(reply=result.get("text", ""))
+    if not settings.xai_api_key:
+        return ChatResponse(reply="Chat requires XAI_API_KEY to be set. Using mock provider.")
+
+    from app.ai.grok_client import GrokAPIClient
+    client = GrokAPIClient(api_key=settings.xai_api_key, model=settings.xai_model)
+    parsed, usage = await client.call(messages, max_tokens=1024)
+
+    # Track usage
+    from app.ai.token_tracker import TokenTracker
+    tracker = TokenTracker(model=settings.xai_model)
+    cost = client.calculate_cost(usage)
+    await tracker.record("chat", usage, cost)
+
+    return ChatResponse(reply=parsed.get("text", ""))
