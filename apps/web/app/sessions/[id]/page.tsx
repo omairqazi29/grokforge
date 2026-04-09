@@ -38,7 +38,7 @@ export default function SessionPage() {
   const [exporting, setExporting] = useState(false);
   const [prResult, setPrResult] = useState<PRExportResult | null>(null);
   const [reviewComments, setReviewComments] = useState<
-    { comment: string; filePath: string; line?: number }[]
+    { comment: string; filePath: string; selectedCode?: string }[]
   >([]);
   const [planComments, setPlanComments] = useState<PlanComment[]>([]);
   const thinkingStage = planLoading
@@ -217,8 +217,8 @@ export default function SessionPage() {
     }
   };
 
-  const handleReviewComment = (comment: string, filePath: string, line?: number) => {
-    setReviewComments((prev) => [...prev, { comment, filePath, line }]);
+  const handleReviewComment = (comment: string, filePath: string, selectedCode?: string) => {
+    setReviewComments((prev) => [...prev, { comment, filePath, selectedCode }]);
   };
 
   const hasFailedValidation = validationRuns.some((r) => r.exit_code !== 0);
@@ -396,12 +396,19 @@ export default function SessionPage() {
                       </p>
                       <div className="space-y-3">
                         {reviewComments.map((rc, i) => (
-                          <div key={i} className="flex gap-3 text-xs">
-                            <span className="shrink-0 font-mono text-muted-foreground">
+                          <div
+                            key={i}
+                            className="border-b border-border/50 pb-3 last:border-0 last:pb-0"
+                          >
+                            <p className="font-mono text-[10px] text-muted-foreground">
                               {rc.filePath}
-                              {rc.line ? `:${rc.line}` : ''}
-                            </span>
-                            <span className="text-foreground/70">{rc.comment}</span>
+                            </p>
+                            {rc.selectedCode && (
+                              <pre className="my-1 max-h-[60px] overflow-hidden border-l-2 border-foreground/10 pl-3 font-mono text-[10px] text-foreground/30">
+                                {rc.selectedCode}
+                              </pre>
+                            )}
+                            <p className="text-xs text-foreground/70">{rc.comment}</p>
                           </div>
                         ))}
                       </div>
