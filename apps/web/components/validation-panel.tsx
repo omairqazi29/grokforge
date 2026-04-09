@@ -145,11 +145,17 @@ export function ValidationPanel({
             </div>
           )}
           {run.analysis && (
-            <div className="p-4">
-              <p className="mb-2 font-mono text-[10px] uppercase tracking-widest text-muted-foreground">
-                Grok Analysis
-              </p>
-              <p className="text-xs leading-relaxed text-foreground/70">{run.analysis}</p>
+            <div>
+              <div className="px-4 pt-4 pb-1">
+                <p className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground">
+                  Grok Analysis
+                </p>
+              </div>
+              <TerminalOutput
+                content={run.analysis}
+                variant="stdout"
+                onCreateSession={repoId ? handleFixThis : undefined}
+              />
             </div>
           )}
         </div>

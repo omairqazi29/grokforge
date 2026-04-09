@@ -210,11 +210,13 @@ export function TerminalEmulator({
             </div>
           )}
           {liveRun.analysis && (
-            <div className="border-t border-border p-4">
+            <div className="border-t border-border p-4 select-text">
               <p className="mb-2 font-mono text-[10px] uppercase tracking-widest text-muted-foreground">
                 Grok Analysis
               </p>
-              <p className="text-xs leading-relaxed text-foreground/70">{liveRun.analysis}</p>
+              <pre className="whitespace-pre-wrap text-xs leading-relaxed text-foreground/70">
+                {liveRun.analysis}
+              </pre>
             </div>
           )}
         </div>
