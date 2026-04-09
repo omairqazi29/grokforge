@@ -256,4 +256,11 @@ export const api = {
         `/api/github/issues?repo=${encodeURIComponent(repo)}${state ? `&state=${state}` : ''}`,
       ),
   },
+  chat: {
+    send: (messages: { role: string; content: string }[], repoId?: number, sessionId?: number) =>
+      request<{ reply: string }>('/api/chat', {
+        method: 'POST',
+        body: JSON.stringify({ messages, repo_id: repoId, session_id: sessionId }),
+      }),
+  },
 };

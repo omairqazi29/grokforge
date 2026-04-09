@@ -7,7 +7,7 @@ from sqlalchemy import text
 from app.config import settings
 from app.database import engine
 from app.models import Base
-from app.routers import repositories, sessions, plans, patches, validation, tokens, github, branches
+from app.routers import repositories, sessions, plans, patches, validation, tokens, github, branches, chat
 
 
 @asynccontextmanager
@@ -42,6 +42,7 @@ app.include_router(tokens.router, tags=["tokens"])
 app.include_router(github.router, prefix="/api/sessions", tags=["github-pr"])
 app.include_router(github.router, prefix="/api", tags=["github"])
 app.include_router(branches.router, prefix="/api/repos", tags=["branches"])
+app.include_router(chat.router, tags=["chat"])
 
 
 @app.get("/api/health")
