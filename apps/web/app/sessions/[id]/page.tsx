@@ -446,6 +446,7 @@ export default function SessionPage() {
           })
         : undefined;
     await wf.generatePatch(feedback);
+    setReviewComments([]);
     setActiveTab('review');
   };
   const handleAutoFix = async () => {
