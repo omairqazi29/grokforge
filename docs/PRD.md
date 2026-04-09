@@ -112,8 +112,9 @@ GrokForge:
 
 ## Competitive Landscape
 
-| Product        | Strengths                        | Gap GrokForge Fills                       |
-| -------------- | -------------------------------- | ----------------------------------------- |
-| Codex (OpenAI) | Cloud execution, parallel agents | First-party xAI product, local-first      |
-| Cursor         | IDE integration, inline editing  | Standalone product, full engineering loop |
-| Copilot        | GitHub integration, autocomplete | Planning + validation + review workflow   |
+| Product        | Strengths                                  | Gap GrokForge Fills                       |
+| -------------- | ------------------------------------------ | ----------------------------------------- |
+| Claude Code    | Repo-aware, terminal access, strong review | xAI-native, visual diff review, GUI       |
+| Codex (OpenAI) | Cloud execution, parallel agents           | First-party xAI product, local-first      |
+| Cursor         | IDE integration, inline editing            | Standalone product, full engineering loop |
+| Copilot        | GitHub integration, autocomplete           | Planning + validation + review workflow   |
