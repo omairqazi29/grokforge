@@ -100,7 +100,8 @@ async def export_patch_as_pr(
     # Get current branch to return to
     try:
         original_branch = await _run_git(repo.path, "rev-parse", "--abbrev-ref", "HEAD")
-    except Exception:
+    except RuntimeError as e:
+        logger.debug("Could not determine current branch, defaulting to main: %s", e)
         original_branch = "main"
 
     try:
@@ -108,8 +109,8 @@ async def export_patch_as_pr(
         # Delete branch if it exists from a previous attempt
         try:
             await _run_git(repo.path, "branch", "-D", branch_name)
-        except Exception:
-            pass
+        except RuntimeError as e:
+            logger.debug("Branch %s does not exist yet (expected): %s", branch_name, e)
 
         # First, restore original files on the main branch so we have a clean base
         for change in changes:
@@ -125,8 +126,8 @@ async def export_patch_as_pr(
         try:
             await _run_git(repo.path, "add", "-A")
             await _run_git(repo.path, "commit", "-m", "restore pre-patch state")
-        except Exception:
-            pass  # nothing to commit is fine
+        except RuntimeError as e:
+            logger.debug("Nothing to commit for pre-patch state (expected): %s", e)
 
         # Create branch from clean state
         await _run_git(repo.path, "checkout", "-b", branch_name)
@@ -170,8 +171,8 @@ async def export_patch_as_pr(
         try:
             remotes = await _run_git(repo.path, "remote")
             has_remote = bool(remotes.strip())
-        except Exception:
-            pass
+        except RuntimeError as e:
+            logger.debug("Could not list remotes: %s", e)
 
         if not has_remote:
             # Save to DB
@@ -223,8 +224,8 @@ async def export_patch_as_pr(
                     )
                     if pr_list.strip():
                         pr_url = pr_list.strip()
-                except Exception:
-                    pass
+                except RuntimeError as e:
+                    logger.warning("Could not fetch existing PR URL: %s", e)
             else:
                 logger.warning("Could not create PR: %s", error_msg)
 
@@ -246,8 +247,8 @@ async def export_patch_as_pr(
     except Exception as e:
         try:
             await _run_git(repo.path, "checkout", original_branch)
-        except Exception:
-            pass
+        except RuntimeError as exc:
+            logger.warning("Failed to restore branch %s during cleanup: %s", original_branch, exc)
         raise HTTPException(status_code=500, detail=str(e))
 
 
@@ -260,7 +261,8 @@ async def get_github_user():
         name = await _run_cmd(".", "gh", "api", "user", "--jq", ".name")
         avatar = await _run_cmd(".", "gh", "api", "user", "--jq", ".avatar_url")
         return GitHubUserResponse(login=login.strip(), name=name.strip(), avatar_url=avatar.strip())
-    except Exception:
+    except RuntimeError as e:
+        logger.warning("GitHub auth check failed: %s", e)
         raise HTTPException(status_code=401, detail="Not authenticated with GitHub. Run 'gh auth login'.")
 
 

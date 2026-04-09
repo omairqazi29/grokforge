@@ -6,7 +6,7 @@ import { Textarea } from '@/components/ui/textarea';
 import type { Plan } from '@/lib/api-client';
 
 interface PlanComment {
-  stepIndex: number | null; // null = general comment
+  stepIndex: number | null;
   text: string;
 }
 
@@ -25,8 +25,7 @@ export function PlanViewer({ plan, onComment, editable = true }: PlanViewerProps
 
   const handleAddComment = () => {
     if (!commentText.trim()) return;
-    const newComment: PlanComment = { stepIndex: activeStep, text: commentText.trim() };
-    const updated = [...comments, newComment];
+    const updated = [...comments, { stepIndex: activeStep, text: commentText.trim() }];
     setComments(updated);
     onComment?.(updated);
     setCommentText('');
@@ -61,9 +60,7 @@ export function PlanViewer({ plan, onComment, editable = true }: PlanViewerProps
             return (
               <div key={i}>
                 <div
-                  className={`flex gap-6 p-6 transition-colors ${
-                    editable ? 'cursor-pointer hover:bg-foreground/[0.02]' : ''
-                  } ${activeStep === i ? 'bg-foreground/[0.03]' : ''}`}
+                  className={`flex gap-6 p-6 transition-colors ${editable ? 'cursor-pointer hover:bg-foreground/[0.02]' : ''} ${activeStep === i ? 'bg-foreground/[0.03]' : ''}`}
                   onClick={() => editable && setActiveStep(activeStep === i ? null : i)}
                 >
                   <div className="flex h-7 w-7 shrink-0 items-center justify-center border border-border font-mono text-xs">
@@ -90,8 +87,6 @@ export function PlanViewer({ plan, onComment, editable = true }: PlanViewerProps
                     </span>
                   )}
                 </div>
-
-                {/* Existing comments on this step */}
                 {stepComments.length > 0 && (
                   <div className="border-t border-border/50 bg-foreground/[0.02] px-6 py-3">
                     {stepComments.map((c, ci) => (
@@ -104,8 +99,6 @@ export function PlanViewer({ plan, onComment, editable = true }: PlanViewerProps
                     ))}
                   </div>
                 )}
-
-                {/* Comment input for active step */}
                 {activeStep === i && editable && (
                   <div className="border-t border-border px-6 py-4">
                     <Textarea

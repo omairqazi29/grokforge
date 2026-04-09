@@ -3,6 +3,7 @@
 import { useState, useRef, useCallback, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
+import { parseDiffLines } from '@/lib/diff-utils';
 import type { PatchFileChange } from '@/lib/api-client';
 
 interface DiffViewerProps {
@@ -13,7 +14,6 @@ interface DiffViewerProps {
 
 function DiffBlock({
   diff,
-  filePath,
   onSelect,
 }: {
   diff: string;
@@ -21,33 +21,7 @@ function DiffBlock({
   onSelect?: (selectedText: string, rect: { x: number; y: number }) => void;
 }) {
   const containerRef = useRef<HTMLDivElement>(null);
-  const lines = diff.split('\n');
-
-  // Parse @@ headers for real line numbers
-  let oldLine = 0;
-  let newLine = 0;
-  const lineNumbers: { old: string; new: string }[] = [];
-
-  for (const line of lines) {
-    const hunkMatch = line.match(/^@@ -(\d+)(?:,\d+)? \+(\d+)(?:,\d+)? @@/);
-    if (hunkMatch) {
-      oldLine = parseInt(hunkMatch[1], 10);
-      newLine = parseInt(hunkMatch[2], 10);
-      lineNumbers.push({ old: '...', new: '...' });
-    } else if (line.startsWith('---') || line.startsWith('+++')) {
-      lineNumbers.push({ old: '', new: '' });
-    } else if (line.startsWith('-')) {
-      lineNumbers.push({ old: String(oldLine), new: '' });
-      oldLine++;
-    } else if (line.startsWith('+')) {
-      lineNumbers.push({ old: '', new: String(newLine) });
-      newLine++;
-    } else {
-      lineNumbers.push({ old: String(oldLine), new: String(newLine) });
-      oldLine++;
-      newLine++;
-    }
-  }
+  const lines = parseDiffLines(diff);
 
   const handleMouseUp = useCallback(() => {
     if (!onSelect || !containerRef.current) return;
@@ -64,40 +38,38 @@ function DiffBlock({
     }
   }, [onSelect]);
 
+  const bgMap = {
+    add: 'bg-green-500/10',
+    remove: 'bg-red-500/10',
+    hunk: 'bg-blue-500/5',
+    meta: '',
+    context: '',
+  };
+  const colorMap = {
+    add: 'text-green-400',
+    remove: 'text-red-400',
+    hunk: 'text-blue-400',
+    meta: 'text-foreground/60',
+    context: 'text-foreground/60',
+  };
+
   return (
     <div
       ref={containerRef}
       onMouseUp={handleMouseUp}
       className="overflow-x-auto font-mono text-xs leading-6 select-text"
     >
-      {lines.map((line, i) => {
-        let bg = '';
-        let textColor = 'text-foreground/60';
-        if (line.startsWith('+') && !line.startsWith('+++')) {
-          bg = 'bg-green-500/10';
-          textColor = 'text-green-400';
-        } else if (line.startsWith('-') && !line.startsWith('---')) {
-          bg = 'bg-red-500/10';
-          textColor = 'text-red-400';
-        } else if (line.startsWith('@@')) {
-          bg = 'bg-blue-500/5';
-          textColor = 'text-blue-400';
-        }
-
-        const ln = lineNumbers[i] || { old: '', new: '' };
-
-        return (
-          <div key={i} className={`flex hover:bg-foreground/5 ${bg}`}>
-            <span className="w-8 shrink-0 select-none border-r border-border px-1 text-right text-foreground/15">
-              {ln.old}
-            </span>
-            <span className="w-8 shrink-0 select-none border-r border-border px-1 text-right text-foreground/15">
-              {ln.new}
-            </span>
-            <span className={`flex-1 px-3 ${textColor}`}>{line || ' '}</span>
-          </div>
-        );
-      })}
+      {lines.map((ln, i) => (
+        <div key={i} className={`flex hover:bg-foreground/5 ${bgMap[ln.type]}`}>
+          <span className="w-8 shrink-0 select-none border-r border-border px-1 text-right text-foreground/15">
+            {ln.oldNum}
+          </span>
+          <span className="w-8 shrink-0 select-none border-r border-border px-1 text-right text-foreground/15">
+            {ln.newNum}
+          </span>
+          <span className={`flex-1 px-3 ${colorMap[ln.type]}`}>{ln.text || ' '}</span>
+        </div>
+      ))}
     </div>
   );
 }
@@ -109,7 +81,6 @@ export function DiffViewer({ changes, overallRationale, onReviewComment }: DiffV
   const [commentOpen, setCommentOpen] = useState(false);
   const [commentText, setCommentText] = useState('');
 
-  // Dismiss popup when clicking elsewhere
   useEffect(() => {
     const dismiss = () => {
       setTimeout(() => {
@@ -124,28 +95,20 @@ export function DiffViewer({ changes, overallRationale, onReviewComment }: DiffV
     return () => document.removeEventListener('mousedown', dismiss);
   }, [commentOpen]);
 
-  if (changes.length === 0) {
+  if (changes.length === 0)
     return (
       <div className="border border-border p-12 text-center">
         <p className="text-sm text-muted-foreground">No changes to display</p>
       </div>
     );
-  }
 
   const activeChange = changes[activeIdx];
-
   const handleSelect = (text: string, rect: { x: number; y: number }) => {
     if (!onReviewComment) return;
     setSelectedCode(text);
     setPopupPos(rect);
     setCommentOpen(false);
   };
-
-  const handleOpenComment = () => {
-    setCommentOpen(true);
-    setPopupPos(null);
-  };
-
   const handleSubmitComment = () => {
     if (!commentText.trim() || !onReviewComment) return;
     onReviewComment(commentText.trim(), activeChange.file_path, selectedCode);
@@ -156,7 +119,6 @@ export function DiffViewer({ changes, overallRationale, onReviewComment }: DiffV
 
   return (
     <div className="space-y-6">
-      {/* Overall Rationale */}
       <div className="border border-border p-6">
         <p className="mb-2 font-mono text-[10px] uppercase tracking-widest text-muted-foreground">
           Summary
@@ -164,9 +126,7 @@ export function DiffViewer({ changes, overallRationale, onReviewComment }: DiffV
         <p className="text-sm leading-relaxed text-foreground/80">{overallRationale}</p>
       </div>
 
-      {/* File tabs + diff */}
       <div className="border border-border">
-        {/* File tabs */}
         <div className="flex overflow-x-auto border-b border-border">
           {changes.map((change, idx) => (
             <button
@@ -176,26 +136,19 @@ export function DiffViewer({ changes, overallRationale, onReviewComment }: DiffV
                 setPopupPos(null);
                 setCommentOpen(false);
               }}
-              className={`shrink-0 border-r border-border px-4 py-3 font-mono text-xs transition-colors ${
-                idx === activeIdx
-                  ? 'bg-foreground/5 text-foreground'
-                  : 'text-muted-foreground hover:text-foreground'
-              }`}
+              className={`shrink-0 border-r border-border px-4 py-3 font-mono text-xs transition-colors ${idx === activeIdx ? 'bg-foreground/5 text-foreground' : 'text-muted-foreground hover:text-foreground'}`}
             >
               {change.file_path}
             </button>
           ))}
         </div>
 
-        {/* Diff content */}
         <div className="relative max-h-[600px] overflow-y-auto">
           <DiffBlock
             diff={activeChange.diff}
             filePath={activeChange.file_path}
             onSelect={onReviewComment ? handleSelect : undefined}
           />
-
-          {/* Selection popup */}
           {popupPos && !commentOpen && (
             <div
               className="absolute z-50 -translate-x-1/2 -translate-y-full"
@@ -205,7 +158,8 @@ export function DiffViewer({ changes, overallRationale, onReviewComment }: DiffV
                 onMouseDown={(e) => {
                   e.preventDefault();
                   e.stopPropagation();
-                  handleOpenComment();
+                  setCommentOpen(true);
+                  setPopupPos(null);
                 }}
                 className="border border-border bg-background px-3 py-1.5 font-mono text-[10px] uppercase tracking-wider shadow-lg transition-colors hover:bg-accent"
               >
@@ -215,7 +169,6 @@ export function DiffViewer({ changes, overallRationale, onReviewComment }: DiffV
           )}
         </div>
 
-        {/* Comment input */}
         {commentOpen && onReviewComment && (
           <div className="border-t border-border p-4">
             <p className="mb-2 font-mono text-[10px] uppercase tracking-widest text-muted-foreground">
@@ -253,7 +206,6 @@ export function DiffViewer({ changes, overallRationale, onReviewComment }: DiffV
           </div>
         )}
 
-        {/* Per-file rationale */}
         <div className="border-t border-border p-6">
           <p className="mb-2 font-mono text-[10px] uppercase tracking-widest text-muted-foreground">
             Rationale &middot; {activeChange.file_path}

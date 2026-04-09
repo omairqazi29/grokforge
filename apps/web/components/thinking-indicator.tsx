@@ -1,6 +1,7 @@
 'use client';
 
-import { useEffect, useState, useRef } from 'react';
+import { useEffect, useState } from 'react';
+import { useStepProgression } from '@/hooks/use-step-progression';
 
 interface ThinkingIndicatorProps {
   stage: 'planning' | 'patching' | 'validating' | 'idle';
@@ -37,13 +38,14 @@ const VALIDATING_STEPS = [
   { label: 'Analyzing results', detail: 'Interpreting exit code and output' },
 ];
 
-export function ThinkingIndicator({ stage, files = [] }: ThinkingIndicatorProps) {
-  const [currentStep, setCurrentStep] = useState(0);
-  const [completedSteps, setCompletedSteps] = useState<Set<number>>(new Set());
-  const [activeFile, setActiveFile] = useState(0);
-  const [elapsed, setElapsed] = useState(0);
-  const startTime = useRef(Date.now());
+const STAGE_LABELS = {
+  planning: 'Grok is reasoning about your codebase',
+  patching: 'Grok is writing code changes',
+  validating: 'Executing validation',
+} as const;
 
+export function ThinkingIndicator({ stage, files = [] }: ThinkingIndicatorProps) {
+  const [activeFile, setActiveFile] = useState(0);
   const steps =
     stage === 'planning'
       ? PLANNING_STEPS
@@ -52,57 +54,18 @@ export function ThinkingIndicator({ stage, files = [] }: ThinkingIndicatorProps)
         : stage === 'validating'
           ? VALIDATING_STEPS
           : [];
+  const { currentStep, completedSteps, elapsed, progress, formatTime } = useStepProgression(
+    steps,
+    stage,
+  );
 
-  // Elapsed timer
-  useEffect(() => {
-    if (stage === 'idle') return;
-    startTime.current = Date.now();
-    setElapsed(0);
-    const timer = setInterval(() => {
-      setElapsed(Math.floor((Date.now() - startTime.current) / 1000));
-    }, 1000);
-    return () => clearInterval(timer);
-  }, [stage]);
-
-  // Slow step progression — each step takes 3-5 seconds
-  useEffect(() => {
-    if (stage === 'idle' || steps.length === 0) return;
-    setCurrentStep(0);
-    setCompletedSteps(new Set());
-
-    let stepIdx = 0;
-    const timeouts: NodeJS.Timeout[] = [];
-
-    const advanceStep = () => {
-      setCompletedSteps((prev) => new Set([...prev, stepIdx]));
-      stepIdx++;
-      if (stepIdx < steps.length) {
-        setCurrentStep(stepIdx);
-        const nextDelay = 3000 + Math.random() * 2500; // 3-5.5s per step
-        timeouts.push(setTimeout(advanceStep, nextDelay));
-      }
-      // If we've completed all steps, just hold on the last one
-    };
-
-    // Start the first step after a brief pause
-    timeouts.push(setTimeout(advanceStep, 3500 + Math.random() * 2000));
-
-    return () => timeouts.forEach(clearTimeout);
-  }, [stage]);
-
-  // Slow file cycling — 2.5s per file
   useEffect(() => {
     if (files.length === 0) return;
-    const interval = setInterval(() => {
-      setActiveFile((prev) => (prev + 1) % files.length);
-    }, 2500);
+    const interval = setInterval(() => setActiveFile((prev) => (prev + 1) % files.length), 2500);
     return () => clearInterval(interval);
   }, [files]);
 
   if (stage === 'idle') return null;
-
-  const progress = steps.length > 0 ? (completedSteps.size / steps.length) * 100 : 0;
-  const formatTime = (s: number) => `${Math.floor(s / 60)}:${(s % 60).toString().padStart(2, '0')}`;
 
   return (
     <div className="border border-border">
@@ -117,9 +80,7 @@ export function ThinkingIndicator({ stage, files = [] }: ThinkingIndicatorProps)
             <div className="absolute inset-0 bg-foreground" />
           </div>
           <span className="font-mono text-xs uppercase tracking-[0.2em] text-muted-foreground">
-            {stage === 'planning' && 'Grok is reasoning about your codebase'}
-            {stage === 'patching' && 'Grok is writing code changes'}
-            {stage === 'validating' && 'Executing validation'}
+            {STAGE_LABELS[stage]}
           </span>
         </div>
         <span className="font-mono text-xs tabular-nums text-muted-foreground">
@@ -136,24 +97,23 @@ export function ThinkingIndicator({ stage, files = [] }: ThinkingIndicatorProps)
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-5">
-        {/* Steps — takes more space */}
+        {/* Steps */}
         <div className="border-r border-border p-6 lg:col-span-3">
           <p className="mb-5 font-mono text-[10px] uppercase tracking-widest text-muted-foreground">
             Process &middot; {completedSteps.size}/{steps.length}
           </p>
           <div className="space-y-3">
             {steps.map((step, i) => {
-              const isCompleted = completedSteps.has(i);
-              const isCurrent = i === currentStep && !isCompleted;
-              const isPending = !isCompleted && !isCurrent;
+              const done = completedSteps.has(i);
+              const active = i === currentStep && !done;
               return (
                 <div
                   key={i}
-                  className={`transition-all duration-700 ${isPending ? 'opacity-30' : 'opacity-100'}`}
+                  className={`transition-all duration-700 ${!done && !active ? 'opacity-30' : 'opacity-100'}`}
                 >
                   <div className="flex items-start gap-3">
                     <div className="mt-0.5 flex h-4 w-4 shrink-0 items-center justify-center">
-                      {isCompleted ? (
+                      {done ? (
                         <svg
                           className="h-3 w-3 text-foreground/50"
                           fill="none"
@@ -163,7 +123,7 @@ export function ThinkingIndicator({ stage, files = [] }: ThinkingIndicatorProps)
                         >
                           <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
                         </svg>
-                      ) : isCurrent ? (
+                      ) : active ? (
                         <div
                           className="h-1.5 w-1.5 bg-foreground"
                           style={{ animation: 'pulse 2s ease-in-out infinite' }}
@@ -174,17 +134,11 @@ export function ThinkingIndicator({ stage, files = [] }: ThinkingIndicatorProps)
                     </div>
                     <div>
                       <span
-                        className={`font-mono text-xs transition-colors duration-500 ${
-                          isCurrent
-                            ? 'text-foreground'
-                            : isCompleted
-                              ? 'text-foreground/50'
-                              : 'text-foreground/25'
-                        }`}
+                        className={`font-mono text-xs transition-colors duration-500 ${active ? 'text-foreground' : done ? 'text-foreground/50' : 'text-foreground/25'}`}
                       >
                         {step.label}
                       </span>
-                      {isCurrent && (
+                      {active && (
                         <p className="mt-1 text-[11px] text-muted-foreground">{step.detail}</p>
                       )}
                     </div>
@@ -208,13 +162,7 @@ export function ThinkingIndicator({ stage, files = [] }: ThinkingIndicatorProps)
                 return (
                   <div
                     key={file}
-                    className={`flex items-center gap-2.5 transition-all duration-700 ${
-                      isActive
-                        ? 'text-foreground'
-                        : wasActive
-                          ? 'text-foreground/30'
-                          : 'text-foreground/15'
-                    }`}
+                    className={`flex items-center gap-2.5 transition-all duration-700 ${isActive ? 'text-foreground' : wasActive ? 'text-foreground/30' : 'text-foreground/15'}`}
                   >
                     <div className="flex h-3 w-3 shrink-0 items-center justify-center">
                       {isActive ? (

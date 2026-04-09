@@ -1,6 +1,7 @@
 """Git branch management — list, create, checkout, current branch, recent commits."""
 
 import asyncio
+import logging
 from typing import List, Optional
 
 from fastapi import APIRouter, Depends, HTTPException
@@ -10,6 +11,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.database import get_db
 from app.models.repository import Repository
 
+logger = logging.getLogger(__name__)
 router = APIRouter()
 
 
@@ -42,7 +44,8 @@ async def list_branches(repo_id: int, db: AsyncSession = Depends(get_db)):
 
     try:
         output = await _git(repo.path, "branch", "--no-color")
-    except Exception:
+    except RuntimeError as e:
+        logger.debug("Could not list branches (repo may not have commits): %s", e)
         return []
 
     branches = []
@@ -64,7 +67,8 @@ async def get_current_branch(repo_id: int, db: AsyncSession = Depends(get_db)):
     try:
         branch = await _git(repo.path, "rev-parse", "--abbrev-ref", "HEAD")
         return {"branch": branch.strip()}
-    except Exception:
+    except RuntimeError as e:
+        logger.debug("Could not determine current branch: %s", e)
         return {"branch": None}
 
 
@@ -78,17 +82,17 @@ async def create_branch(
     try:
         try:
             await _git(repo.path, "stash", "--include-untracked")
-        except Exception:
-            pass
+        except RuntimeError as e:
+            logger.debug("Nothing to stash: %s", e)
         if body.from_branch:
             await _git(repo.path, "checkout", body.from_branch)
         await _git(repo.path, "checkout", "-b", body.name)
         try:
             await _git(repo.path, "stash", "pop")
-        except Exception:
-            pass
+        except RuntimeError as e:
+            logger.debug("Nothing to pop from stash: %s", e)
         return BranchInfo(name=body.name, is_current=True)
-    except Exception as e:
+    except RuntimeError as e:
         raise HTTPException(status_code=400, detail=str(e))
 
 
@@ -103,16 +107,16 @@ async def checkout_branch(
         # Stash any dirty changes first
         try:
             await _git(repo.path, "stash", "--include-untracked")
-        except Exception:
-            pass
+        except RuntimeError as e:
+            logger.debug("Nothing to stash: %s", e)
         await _git(repo.path, "checkout", body.branch)
         # Try to pop stash back
         try:
             await _git(repo.path, "stash", "pop")
-        except Exception:
-            pass
+        except RuntimeError as e:
+            logger.debug("Nothing to pop from stash: %s", e)
         return {"branch": body.branch, "message": f"Switched to {body.branch}"}
-    except Exception as e:
+    except RuntimeError as e:
         raise HTTPException(status_code=400, detail=str(e))
 
 
@@ -140,7 +144,8 @@ async def list_commits(
                     date=parts[3],
                 ))
         return commits
-    except Exception:
+    except RuntimeError as e:
+        logger.debug("Could not list commits: %s", e)
         return []
 
 

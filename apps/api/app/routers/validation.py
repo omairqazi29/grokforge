@@ -1,5 +1,6 @@
 import asyncio
 import json
+import logging
 import time
 from typing import List
 
@@ -15,6 +16,7 @@ from app.models.validation_run import ValidationRun
 from app.schemas import ValidationRunCreate, ValidationRunResponse
 from app.ai import get_ai_provider
 
+logger = logging.getLogger(__name__)
 router = APIRouter()
 
 
@@ -99,12 +101,21 @@ async def run_validation_stream(
         except asyncio.TimeoutError:
             exit_code = 124
             msg = "Command timed out\n"
+            logger.warning("Validation command timed out: %s", body.command)
             stderr_buf.append(msg)
             evt = json.dumps({"type": "stderr", "text": msg})
             yield f"data: {evt}\n\n"
-        except Exception as e:
+        except OSError as e:
             exit_code = 1
             msg = str(e) + "\n"
+            logger.error("OS error running validation command: %s", e)
+            stderr_buf.append(msg)
+            evt = json.dumps({"type": "stderr", "text": msg})
+            yield f"data: {evt}\n\n"
+        except RuntimeError as e:
+            exit_code = 1
+            msg = str(e) + "\n"
+            logger.error("Runtime error running validation command: %s", e)
             stderr_buf.append(msg)
             evt = json.dumps({"type": "stderr", "text": msg})
             yield f"data: {evt}\n\n"
