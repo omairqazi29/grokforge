@@ -223,34 +223,24 @@ export default function SessionPage() {
   }
 
   return (
-    <div className="min-h-screen">
+    <div className="px-8 py-8">
       {/* Header */}
-      <header className="fixed top-0 z-50 w-full border-b border-border bg-background/90 backdrop-blur-sm">
-        <div className="mx-auto flex max-w-7xl items-center justify-between px-6 py-4">
-          <div className="flex items-center gap-4">
-            <button
-              onClick={() => router.push(`/repos/${repo.id}`)}
-              className="font-mono text-xs uppercase tracking-wider text-muted-foreground transition-colors hover:text-foreground"
-            >
-              &larr; {repo.name}
-            </button>
-            <span className="text-border">|</span>
-            <span className="font-mono text-sm">{session.title}</span>
-            <span className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground">
-              {session.status}
-            </span>
-          </div>
-          {/* P2: Token Dashboard indicator */}
-          <div className="flex items-center gap-4">
-            <span className="font-mono text-[10px] uppercase tracking-wider text-muted-foreground">
-              Session #{session.id}
-            </span>
-          </div>
+      <div className="mb-6 flex items-center justify-between border-b border-border pb-4">
+        <div className="flex items-center gap-4">
+          <span className="font-mono text-sm">{session.title}</span>
+          <span className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground">
+            {session.status}
+          </span>
         </div>
-      </header>
+        <div className="flex items-center gap-4">
+          <span className="font-mono text-[10px] uppercase tracking-wider text-muted-foreground">
+            #{session.id}
+          </span>
+        </div>
+      </div>
 
       {/* Content */}
-      <div className="mx-auto max-w-7xl px-6 pt-24 pb-16">
+      <div>
         <Tabs value={activeTab} onValueChange={setActiveTab}>
           <TabsList>
             <TabsTrigger value="compose">
