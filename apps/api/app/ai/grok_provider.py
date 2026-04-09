@@ -173,18 +173,39 @@ class GrokProvider(AIProvider):
         summary = context.get("summary", "")
         constraint_text = "\n".join(f"- {c}" for c in constraints) if constraints else "None"
 
+        # Detect package manager and project type from file tree
+        files = context.get("file_tree", [])
+        pkg_hints = []
+        if any("requirements.txt" in f for f in files):
+            pkg_hints.append("Uses pip with requirements.txt (NOT poetry, NOT pyproject.toml for deps)")
+        if any("pyproject.toml" in f for f in files):
+            pkg_hints.append("Has pyproject.toml")
+        if any("package.json" in f for f in files):
+            pkg_hints.append("Uses npm/pnpm (check package.json)")
+        if any("Cargo.toml" in f for f in files):
+            pkg_hints.append("Rust project with Cargo")
+        if any("go.mod" in f for f in files):
+            pkg_hints.append("Go module")
+        pkg_context = "\n".join(f"- {h}" for h in pkg_hints) if pkg_hints else "Unknown"
+
         result = await self._call(
             operation="generate_plan",
             messages=[
                 {
                     "role": "system",
-                    "content": "You are a senior software engineer. Create a detailed implementation plan for the given task.",
+                    "content": (
+                        "You are a senior software engineer. Create a detailed implementation plan. "
+                        "IMPORTANT: Use only the package manager and tools that already exist in the repo. "
+                        "Do NOT introduce new build systems (e.g., don't add poetry to a pip project). "
+                        "Only modify files that already exist unless the task requires new files."
+                    ),
                 },
                 {
                     "role": "user",
                     "content": (
                         f"Task: {task}\n\n"
                         f"Repository summary: {summary}\n\n"
+                        f"Package manager / project type:\n{pkg_context}\n\n"
                         f"File tree:\n{file_tree}\n\n"
                         f"Constraints:\n{constraint_text}\n\n"
                         "Create a step-by-step plan."
