@@ -23,7 +23,7 @@ xAI positioned Grok Code Fast 1 through partner integrations (Copilot, Cursor, C
 
 GrokForge is **one product with three integrated capability layers**. Each layer strengthens the others.
 
-### Layer 1: GrokForge Workspace
+### Layer 1: GrokForge Workspace — FULLY BUILT
 
 **Interactive repo-aware coding workspace.**
 
@@ -31,13 +31,22 @@ The developer connects a repo, describes a task, and gets a structured engineeri
 
 1. **Repo Onboarding** - Scan, index, summarize the codebase
 2. **Task Planning** - Generate structured plans with risks and affected files
-3. **Patch Generation** - Produce multi-file patches with per-file rationale
-4. **Validation** - Run tests/lint/build and analyze results
-5. **Review** - Present diffs with explanations, accept/reject/regenerate
+3. **Patch Generation** - Produce multi-file patches with per-file rationale (sends real file contents to Grok)
+4. **Validation** - Run tests/lint/build with real-time SSE streaming and Grok analysis
+5. **Review** - Present diffs with explanations, accept/reject/regenerate with feedback
+6. **PR Export** - Export accepted patches as git branches and GitHub PRs
 
-**MVP Status**: Fully built and functional.
+**Current features beyond original spec:**
 
-### Layer 2: GrokForge Lens
+- Git branch management (list, create, checkout, commit history)
+- Grok chat with repo/session context
+- GitHub integration (clone repos, list repos/issues)
+- Token usage tracking and cost dashboard
+- Feedback-driven patch regeneration
+- Accept writes files to disk, reject reverts to originals
+- Settings page and overview dashboard
+
+### Layer 2: GrokForge Lens — PARTIALLY BUILT
 
 **Codebase intelligence and retrieval layer.**
 
@@ -49,11 +58,19 @@ Makes Grok dramatically better on large, messy multi-file repos:
 - **Change Impact Analysis** - "If I change this file, what else might break?"
 - **Semantic Memory** - Remember architecture decisions across sessions
 
-**MVP Status**: Partially built. Repo scanner and symbol indexer are implemented. Architecture summary generation works through the AI provider.
+**Built so far:**
 
-**Why it matters**: Huge context windows don't automatically produce reliable multi-file behavior. Lens provides structured context that makes every other layer more accurate.
+- Repo scanner and symbol indexer (fully implemented)
+- Architecture summary generation via AI provider
+- Dependency scanner for import analysis
+- File contents are read and sent to Grok during patch generation for accurate context
 
-### Layer 3: GrokForge Ops
+**Remaining:**
+
+- Change impact analysis (planned)
+- Persistent semantic memory across sessions (planned)
+
+### Layer 3: GrokForge Ops — PLANNED
 
 **Autonomous PR worker for teams.**
 
@@ -65,9 +82,17 @@ Takes an issue, generates a complete PR with evidence:
 4. **Validation** - Run test suite, lint, build
 5. **PR Draft** - Open PR with evidence bundle, risk score, rollback notes
 
-**MVP Status**: Described in proposal, UI stub ready. Shares Workspace's patch engine and Lens's context layer.
+**Built so far:**
 
-**Why it matters**: The autonomous coding use case is commercially powerful. Ops reuses Workspace's patch engine and Lens's context, making it a natural extension rather than a separate product.
+- PR export pipeline (branch creation, commit, push, PR creation via gh CLI)
+- GitHub issue listing for any repo
+- Branch management (create, checkout, list)
+
+**Remaining:**
+
+- Automatic issue intake → plan → patch → PR pipeline
+- Evidence bundle generation
+- Risk scoring
 
 ---
 
@@ -115,27 +140,16 @@ The most powerful unlock: **dispatch coding tasks from your phone**.
 - Get a push notification when the PR is ready for review
 - Review the diff, approve, and merge — all from your phone
 
-**Why this matters**: Engineering leaders and on-call developers need to unblock work without opening a laptop. A mobile dispatch interface turns Grok into an always-available engineering teammate.
-
 **Technical feasibility**: The API-first architecture already supports this. The frontend is a thin client over REST endpoints. A mobile client (React Native or PWA) would call the same API. Cloud execution requires moving the validation runner to sandboxed containers — a scoped infrastructure change, not a rewrite.
 
 ---
 
 ## Technical Architecture
 
-- **Frontend**: Next.js + TypeScript + Tailwind + shadcn/ui
+- **Frontend**: Next.js 14+ (App Router) + TypeScript + Tailwind + shadcn/ui
 - **Backend**: FastAPI + SQLAlchemy + SQLite (Postgres-ready via SQLAlchemy)
 - **AI Layer**: Grok integration via xAI API with structured outputs, mock fallback
-- **Design**: Monorepo, API-first, ready for cloud deployment
+- **AI Internals**: Separated into GrokAPIClient (HTTP transport), schemas.py (JSON schemas), TokenTracker (usage recording)
+- **Design**: Monorepo, API-first, sidebar-based navigation, ready for cloud deployment
 
 The Grok provider uses the xAI chat completions API at `api.x.ai/v1` with structured outputs (JSON schema in `response_format`). Every AI method returns guaranteed-schema JSON: plans, patches, validation analysis. Set `XAI_API_KEY` to activate real Grok; unset for mock data.
-
----
-
-## Interview Positioning
-
-> "I noticed xAI has strong model capability for coding, but there's a meaningful product gap between a coding model and a complete software engineering workflow. So I built GrokForge — a repo-aware coding workspace with three integrated layers: Workspace for interactive coding, Lens for codebase intelligence, and Ops for autonomous PRs.
->
-> It works locally today, but the architecture is API-first so it's ready to go cloud-native. The most exciting unlock is mobile dispatch — imagine opening your phone, typing 'fix the flaky CI test,' and getting a reviewed PR back in minutes. The backend already supports it; it's just a frontend surface away.
->
-> What I wanted to demonstrate is that I understand both sides: model capability and product execution. The Grok provider uses structured outputs to guarantee schema-compliant plans and patches. The architecture is provider-agnostic but optimized for xAI's API capabilities."

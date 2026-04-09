@@ -10,7 +10,7 @@
 
 - Zero-config development (mock by default)
 - One env var to switch to production
-- Easy to add new providers (Claude, GPT, etc.)
+- Easy to add new providers (OpenAI, Gemini, etc.)
 - Provider interface is the contract — frontend doesn't care which backend AI runs
 
 **Files:** `apps/api/app/ai/provider.py`, `apps/api/app/ai/__init__.py`

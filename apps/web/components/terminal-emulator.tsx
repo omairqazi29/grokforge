@@ -34,7 +34,7 @@ export function TerminalEmulator({
   const [command, setCommand] = useState('');
   const [history, setHistory] = useState<string[]>([]);
   const [historyIdx, setHistoryIdx] = useState(-1);
-  const liveOutputRef = useRef<HTMLDivElement>(null);
+  const liveOutputRef = useRef<HTMLPreElement>(null);
 
   useEffect(() => {
     liveOutputRef.current?.scrollTo({ top: liveOutputRef.current.scrollHeight });
