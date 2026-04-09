@@ -5,7 +5,7 @@ import { useParams, useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { PlanViewer } from '@/components/plan-viewer';
+import { PlanViewer, PlanComment } from '@/components/plan-viewer';
 import { DiffViewer } from '@/components/diff-viewer';
 import { ValidationPanel } from '@/components/validation-panel';
 import { ThinkingIndicator } from '@/components/thinking-indicator';
@@ -40,6 +40,7 @@ export default function SessionPage() {
   const [reviewComments, setReviewComments] = useState<
     { comment: string; filePath: string; line?: number }[]
   >([]);
+  const [planComments, setPlanComments] = useState<PlanComment[]>([]);
   const thinkingStage = planLoading
     ? 'planning'
     : patchLoading
@@ -340,18 +341,39 @@ export default function SessionPage() {
             <TabsContent value="plan">
               {plan && (
                 <div className="space-y-6">
-                  <PlanViewer plan={plan} />
-                  <div className="flex justify-end gap-3 border-t border-border pt-6">
-                    <Button variant="outline" onClick={() => setActiveTab('compose')}>
-                      <span className="font-mono text-xs uppercase tracking-wider">
-                        Revise Task
-                      </span>
-                    </Button>
-                    <Button onClick={handleGeneratePatch} disabled={patchLoading}>
-                      <span className="font-mono text-xs uppercase tracking-wider">
-                        {patchLoading ? 'Generating...' : 'Generate Patch'}
-                      </span>
-                    </Button>
+                  <PlanViewer
+                    plan={plan}
+                    onComment={setPlanComments}
+                    editable={!patch || patch.status === 'pending'}
+                  />
+                  <div className="flex items-center justify-between border-t border-border pt-6">
+                    <div>
+                      {planComments.length > 0 && (
+                        <Button
+                          variant="outline"
+                          onClick={() =>
+                            handleGeneratePlan(session.task_description, session.constraints || [])
+                          }
+                          disabled={planLoading}
+                        >
+                          <span className="font-mono text-xs uppercase tracking-wider">
+                            {planLoading ? 'Regenerating...' : 'Regenerate Plan'}
+                          </span>
+                        </Button>
+                      )}
+                    </div>
+                    <div className="flex gap-3">
+                      <Button variant="outline" onClick={() => setActiveTab('compose')}>
+                        <span className="font-mono text-xs uppercase tracking-wider">
+                          Revise Task
+                        </span>
+                      </Button>
+                      <Button onClick={handleGeneratePatch} disabled={patchLoading}>
+                        <span className="font-mono text-xs uppercase tracking-wider">
+                          {patchLoading ? 'Generating...' : 'Generate Patch'}
+                        </span>
+                      </Button>
+                    </div>
                   </div>
                 </div>
               )}
