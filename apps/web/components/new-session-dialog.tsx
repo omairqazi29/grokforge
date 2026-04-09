@@ -89,7 +89,7 @@ export function NewSessionDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-xl">
+      <DialogContent className="sm:max-w-[1000px]">
         <DialogHeader>
           <DialogTitle className="font-mono text-sm uppercase tracking-wider">
             New Session
